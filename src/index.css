@@ -1,0 +1,12 @@
+
+@import url('https://googleapis.com');
+@import "tailwindcss";
+
+html {
+  scroll-behavior: smooth;
+}
+
+@theme {
+    --font-roboto:"Roboto", sans-serif;
+    --font-poppins:"Poppins",sans-serif;
+}
