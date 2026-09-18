@@ -26,13 +26,14 @@ import { regions } from '../data/regions'
 import type { CostItem, StatusLevel } from '../types/cloud'
 import { formatUSD } from '../utils/format'
 
-type Period = 'day' | 'week' | 'month' | 'year'
+type Period = 'hour' | 'day' | 'week' | 'month' | 'year'
 
-const PERIODS: { id: Period; label: string; factor: number }[] = [
-  { id: 'day', label: 'Día', factor: 12 / 365 },
-  { id: 'week', label: 'Semana', factor: 12 / 52 },
-  { id: 'month', label: 'Mes', factor: 1 },
-  { id: 'year', label: 'Año', factor: 12 },
+const PERIODS: { id: Period; label: string; factor: number; hours: number }[] = [
+  { id: 'hour', label: 'Hora', factor: 1 / 730, hours: 1 },
+  { id: 'day', label: 'Día', factor: 24 / 730, hours: 24 },
+  { id: 'week', label: 'Semana', factor: 168 / 730, hours: 168 },
+  { id: 'month', label: 'Mes', factor: 1, hours: 730 },
+  { id: 'year', label: 'Año', factor: 12, hours: 8760 },
 ]
 
 interface Advice {
@@ -74,7 +75,7 @@ export default function Costs() {
   const [projectedUsers, setProjectedUsers] = useState(0)
 
   const selected = proposals.find((p) => p.id === selectedId) ?? proposals[0]
-  const periodInfo = PERIODS.find((p) => p.id === period) ?? PERIODS[2]
+  const periodInfo = PERIODS.find((p) => p.id === period) ?? PERIODS[3]
 
   useEffect(() => {
     const current = proposals.find((p) => p.id === selectedId) ?? proposals[0]
@@ -246,6 +247,7 @@ export default function Costs() {
                   item={item}
                   periodLabel={periodInfo.label.toLowerCase()}
                   subtotal={item.monthlyCost * periodInfo.factor}
+                  estimatedHours={periodInfo.hours}
                 />
               ))}
             </div>

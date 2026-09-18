@@ -5,9 +5,10 @@ interface CostCardProps {
   item: CostItem
   periodLabel: string
   subtotal: number
+  estimatedHours: number
 }
 
-export default function CostCard({ item, periodLabel, subtotal }: CostCardProps) {
+export default function CostCard({ item, periodLabel, subtotal, estimatedHours }: CostCardProps) {
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
       <h3 className="text-lg font-semibold text-black">{item.serviceName}</h3>
@@ -19,8 +20,10 @@ export default function CostCard({ item, periodLabel, subtotal }: CostCardProps)
           </dd>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <dt className="text-neutral-500">Horas</dt>
-          <dd className="font-medium text-black">{item.hours} h</dd>
+          <dt className="text-neutral-500">Horas estimadas</dt>
+          <dd className="font-medium text-black">
+            {estimatedHours.toLocaleString('es-ES')} h
+          </dd>
         </div>
         <div className="flex items-center justify-between gap-2">
           <dt className="text-neutral-500">Costo unitario</dt>

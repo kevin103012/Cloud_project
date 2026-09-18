@@ -23,8 +23,10 @@ export default function ServiceCard({ service }: ServiceCardProps) {
       <p className="mt-0.5 text-xs font-medium tracking-wide text-neutral-400 uppercase">
         {service.category}
       </p>
-      <p className="mt-2 text-sm font-medium text-black">{service.mainFunction}</p>
-      <p className="mt-2 text-sm text-neutral-600 transition-all duration-200 md:mt-0 md:max-h-0 md:overflow-hidden md:opacity-0 md:group-hover:mt-2 md:group-hover:max-h-32 md:group-hover:opacity-100">
+      <p className="mt-3 text-xs font-semibold text-neutral-400 uppercase">Función principal</p>
+      <p className="mt-1 text-sm font-medium leading-5 text-black">{service.mainFunction}</p>
+      <p className="mt-3 text-xs font-semibold text-neutral-400 uppercase">Descripción</p>
+      <p className="mt-1 text-sm leading-6 text-neutral-600">
         {service.description}
       </p>
       <p className="mt-3 text-xs text-neutral-400">
