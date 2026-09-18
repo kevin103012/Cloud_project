@@ -18,11 +18,13 @@ const inputClass =
 
 const labelClass = 'mb-1 block text-sm font-medium text-black'
 
+const activeRegions = regions.filter((region) => region.status === 'active')
+
 export default function ProposalForm({ onSubmit }: ProposalFormProps) {
   const [solutionName, setSolutionName] = useState('')
   const [appType, setAppType] = useState(appTypes[0])
   const [description, setDescription] = useState('')
-  const [regionId, setRegionId] = useState(regions[0].id)
+  const [regionId, setRegionId] = useState(activeRegions[0]?.id ?? '')
   const [estimatedUsers, setEstimatedUsers] = useState('')
   const [availability, setAvailability] = useState<AvailabilityLevel>(
     availabilityLevels[1] as AvailabilityLevel,
@@ -127,8 +129,8 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
           onChange={(e) => setRegionId(e.target.value)}
         >
           {regions.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
+            <option key={r.id} value={r.id} disabled={r.status !== 'active'}>
+              {r.name}{r.status === 'standby' ? ' (Standby)' : ''}
             </option>
           ))}
         </select>
