@@ -1,12 +1,117 @@
 
-@import url('https://googleapis.com');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 html {
   scroll-behavior: smooth;
 }
 
 @theme {
-    --font-roboto:"Roboto", sans-serif;
-    --font-poppins:"Poppins",sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-poppins: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-roboto: "Roboto", ui-sans-serif, system-ui, sans-serif;
+
+  /* Azul pizarra desaturado: profesional, sobrio y apto para ambos temas. */
+  --color-brand-50: #f2f6f9;
+  --color-brand-100: #e3ebf1;
+  --color-brand-400: #6f91ad;
+  --color-brand-500: #557b99;
+  --color-brand-600: #45657f;
+  --color-brand-700: #38536a;
+  --color-brand-800: #304657;
+  --color-brand-900: #293b49;
+
+  --color-accent-400: #7fa3b8;
+  --color-accent-500: #658ca4;
+
+  /* Tokens semánticos: deben preferirse sobre colores físicos. */
+  --color-canvas: var(--app-canvas);
+  --color-surface: var(--app-surface);
+  --color-surface-muted: var(--app-surface-muted);
+  --color-foreground: var(--app-text);
+  --color-muted: var(--app-text-muted);
+  --color-subtle: var(--app-border);
 }
+
+:root {
+  color-scheme: light;
+  --app-canvas: #f4f6f8;
+  --app-surface: #ffffff;
+  --app-surface-muted: #edf1f4;
+  --app-text: #1c2833;
+  --app-text-muted: #64717d;
+  --app-border: #d9e0e6;
+  --chart-primary: #45657f;
+  --chart-secondary: #9aabb8;
+  --chart-grid: #d9e0e6;
+  --chart-axis: #64717d;
+  --map-ocean: #e9eff3;
+  --map-land: #ffffff;
+  --map-land-hover: #e2eaf0;
+  --map-coast: #c4d0d9;
+  --map-grid: #d7e0e6;
+  --map-route: #658ca4;
+  --map-shadow: #526675;
+  --map-selected: #38536a;
+  --map-selected-ring: rgb(85 123 153 / 0.28);
+}
+
+.dark {
+  color-scheme: dark;
+  --app-canvas: #10171e;
+  --app-surface: #18212a;
+  --app-surface-muted: #202c37;
+  --app-text: #e6ebef;
+  --app-text-muted: #9ba8b4;
+  --app-border: #2b3946;
+  --chart-primary: #7f9db3;
+  --chart-secondary: #526675;
+  --chart-grid: #2b3946;
+  --chart-axis: #9ba8b4;
+  --map-ocean: #121c25;
+  --map-land: #263541;
+  --map-land-hover: #304452;
+  --map-coast: #425564;
+  --map-grid: #22303b;
+  --map-route: #7f9db3;
+  --map-shadow: #05080b;
+  --map-selected: #557b99;
+  --map-selected-ring: rgb(127 157 179 / 0.3);
+}
+
+body {
+  margin: 0;
+  background: var(--app-canvas);
+  color: var(--app-text);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Sustituye los negros puros heredados por tonos de marca menos agresivos. */
+.bg-black { background-color: #38536a; }
+.text-black { color: var(--app-text); }
+.border-black { border-color: #45657f; }
+.hover\:bg-black:hover { background-color: #304657; }
+.focus\:border-black:focus { border-color: #557b99; }
+.accent-black { accent-color: #45657f; }
+
+/* Compatibilidad oscura para componentes aún escritos con la paleta anterior. */
+.dark .bg-white { background-color: var(--app-surface); }
+.dark .bg-neutral-100 { background-color: var(--app-surface-muted); }
+.dark .bg-neutral-200 { background-color: #2b3946; }
+.dark .bg-black { background-color: #263b4b; }
+.dark .text-black { color: var(--app-text); }
+.dark .text-neutral-700,
+.dark .text-neutral-600 { color: #bdc7cf; }
+.dark .text-neutral-500,
+.dark .text-neutral-400 { color: var(--app-text-muted); }
+.dark .border-neutral-100,
+.dark .border-neutral-200,
+.dark .border-neutral-300,
+.dark .border-black\/10 { border-color: var(--app-border); }
+.dark .border-black { border-color: #607f96; }
+.dark .ring-neutral-200 { --tw-ring-color: rgb(85 123 153 / 0.35); }
+.dark select,
+.dark input,
+.dark textarea { color-scheme: dark; }

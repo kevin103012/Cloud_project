@@ -14,6 +14,7 @@ export const networkNodes: NetworkNode[] = [
     kind: 'dns',
     description: 'Resolución DNS y enrutamiento global.',
     status: 'ok',
+    serviceId: 'route53',
   },
   {
     id: 'cloudfront',
@@ -21,6 +22,7 @@ export const networkNodes: NetworkNode[] = [
     kind: 'cdn',
     description: 'CDN con 400+ edge locations.',
     status: 'ok',
+    serviceId: 'cloudfront',
   },
   {
     id: 'vpc',
@@ -28,6 +30,7 @@ export const networkNodes: NetworkNode[] = [
     kind: 'vpc',
     description: 'Red privada con subredes públicas y privadas.',
     status: 'ok',
+    serviceId: 'vpc',
   },
   {
     id: 'ec2',
@@ -35,6 +38,7 @@ export const networkNodes: NetworkNode[] = [
     kind: 'compute',
     description: '3–6 instancias en subred pública.',
     status: 'ok',
+    serviceId: 'ec2',
   },
   {
     id: 'rds',
@@ -42,6 +46,7 @@ export const networkNodes: NetworkNode[] = [
     kind: 'database',
     description: 'PostgreSQL en subred privada, puerto 5432.',
     status: 'ok',
+    serviceId: 'rds',
   },
 ]
 

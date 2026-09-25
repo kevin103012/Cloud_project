@@ -8,6 +8,7 @@ import {
 } from '../data/planning'
 import { regions } from '../data/regions'
 import { formatUSD } from '../utils/format'
+import { getMonthlyCost, getServiceCost } from '../utils/cloudData'
 
 interface ProposalFormProps {
   onSubmit: (proposal: Proposal) => void
@@ -26,9 +27,7 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
   const [description, setDescription] = useState('')
   const [regionId, setRegionId] = useState(activeRegions[0]?.id ?? '')
   const [estimatedUsers, setEstimatedUsers] = useState('')
-  const [availability, setAvailability] = useState<AvailabilityLevel>(
-    availabilityLevels[1] as AvailabilityLevel,
-  )
+  const [availability, setAvailability] = useState<AvailabilityLevel>(availabilityLevels[1])
   const [serviceIds, setServiceIds] = useState<string[]>([])
   const [migrationGoal, setMigrationGoal] = useState(migrationGoals[0])
   const [error, setError] = useState('')
@@ -39,14 +38,17 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
     )
   }
 
-  const selectedMonthly = serviceIds.reduce(
-    (sum, id) => sum + (awsServices.find((s) => s.id === id)?.monthlyCost ?? 0),
-    0,
-  )
-  const topServices = [...awsServices]
-    .sort((a, b) => b.monthlyCost - a.monthlyCost)
+  const selectedRegion = regions.find((region) => region.id === regionId)
+  const availableServices = awsServices.filter((service) => selectedRegion?.services.includes(service.id))
+  const selectedMonthly = getMonthlyCost(serviceIds)
+  const topServices = [...availableServices]
+    .sort(
+      (a, b) =>
+        (getServiceCost(b.id)?.monthlyCost ?? 0) -
+        (getServiceCost(a.id)?.monthlyCost ?? 0),
+    )
     .slice(0, 4)
-  const maxCost = topServices[0]?.monthlyCost ?? 0
+  const maxCost = getServiceCost(topServices[0]?.id ?? '')?.monthlyCost ?? 0
   const previewRegion = regions.find((r) => r.id === regionId)
 
   function handleSubmit(event: React.FormEvent) {
@@ -126,7 +128,14 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
           id="region"
           className={inputClass}
           value={regionId}
-          onChange={(e) => setRegionId(e.target.value)}
+          onChange={(e) => {
+            const nextRegionId = e.target.value
+            const nextRegion = regions.find((region) => region.id === nextRegionId)
+            setRegionId(nextRegionId)
+            setServiceIds((current) =>
+              current.filter((serviceId) => nextRegion?.services.includes(serviceId)),
+            )
+          }}
         >
           {regions.map((r) => (
             <option key={r.id} value={r.id} disabled={r.status !== 'active'}>
@@ -185,7 +194,7 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
       <div className="md:col-span-2">
         <span className={labelClass}>Servicios Cloud seleccionados</span>
         <div className="flex flex-wrap gap-2">
-          {awsServices.map((s) => {
+          {availableServices.map((s) => {
             const active = serviceIds.includes(s.id)
             return (
               <button
@@ -287,6 +296,7 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
           <div className="mt-3 flex flex-col gap-2.5">
             {topServices.map((s) => {
               const selected = serviceIds.includes(s.id)
+              const monthlyCost = getServiceCost(s.id)?.monthlyCost ?? 0
               return (
                 <button
                   key={s.id}
@@ -301,7 +311,7 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
                     >
                       {s.name}
                     </span>
-                    <span className="text-neutral-400">{formatUSD(s.monthlyCost)}</span>
+                    <span className="text-neutral-400">{formatUSD(monthlyCost)}</span>
                   </div>
                   <div className="mt-1 h-1.5 rounded-full bg-neutral-200">
                     <div
@@ -309,7 +319,7 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
                         selected ? 'bg-black' : 'bg-neutral-400'
                       }`}
                       style={{
-                        width: `${maxCost === 0 ? 0 : (s.monthlyCost / maxCost) * 100}%`,
+                        width: `${maxCost === 0 ? 0 : (monthlyCost / maxCost) * 100}%`,
                       }}
                     />
                   </div>

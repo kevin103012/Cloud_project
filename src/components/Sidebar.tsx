@@ -6,12 +6,15 @@ import {
   Globe,
   LayoutGrid,
   LogOut,
+  Moon,
   Network,
   ShieldCheck,
+  Sun,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router'
 import CloudImage from '../assets/cloud.png'
+import { useTheme } from '../hooks/useTheme'
 import { routes } from '../routes/routes'
 
 const moduleIcons: Record<string, LucideIcon> = {
@@ -26,8 +29,10 @@ const moduleIcons: Record<string, LucideIcon> = {
 
 function itemClasses(isActive: boolean, expanded: boolean) {
   const base =
-    'flex items-center rounded-lg py-2.5 font-medium transition-all duration-200 hover:scale-[1.02] hover:bg-black hover:text-white'
-  const state = isActive ? 'bg-black text-white' : 'text-black'
+    'flex items-center rounded-lg py-2.5 font-medium transition-all duration-200 hover:bg-brand-100 hover:text-brand-800 dark:hover:bg-brand-800 dark:hover:text-slate-100'
+  const state = isActive
+    ? 'bg-brand-700 text-white shadow-sm dark:bg-brand-800 dark:text-slate-100'
+    : 'text-muted'
   const layout = expanded ? 'gap-3 px-4' : 'justify-center px-0'
   return `${base} ${state} ${layout}`
 }
@@ -38,6 +43,7 @@ function labelClass(expanded: boolean) {
 
 export default function Sidebar() {
   const navigate = useNavigate()
+  const { theme, toggle } = useTheme()
   const [expanded, setExpanded] = useState(true)
   const collapseTimer = useRef<number | null>(null)
 
@@ -68,17 +74,19 @@ export default function Sidebar() {
     <aside
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`sticky top-0 flex h-screen flex-col overflow-hidden border-r border-black/10 bg-white px-4 py-6 transition-[width] duration-200 ${expanded ? 'w-56' : 'w-20'}`}
+      className={`sticky top-0 flex h-screen flex-col overflow-hidden border-r border-subtle bg-surface px-4 py-6 transition-[width] duration-200 ${expanded ? 'w-56' : 'w-20'}`}
     >
-      {/* Logo + nombre */}
       <div
-        className={`flex flex-row items-center gap-2 text-2xl font-semibold ${expanded ? 'px-2' : 'justify-center px-0'}`}
+        className={`flex flex-row items-center gap-2 text-2xl font-semibold text-foreground ${expanded ? 'px-2' : 'justify-center px-0'}`}
       >
         {expanded && <h1>CloudOpus</h1>}
-        <img src={CloudImage} className="w-10 shrink-0" alt="CloudOpus logo" />
+        <img
+          src={CloudImage}
+          className="w-10 shrink-0 transition-[filter] duration-200 dark:brightness-0 dark:invert"
+          alt="CloudOpus logo"
+        />
       </div>
 
-      {/* Módulos */}
       <nav className="mt-8 flex flex-1 flex-col gap-1">
         {routes.map(({ path, name }) => {
           const Icon = moduleIcons[path] ?? Cloud
@@ -96,7 +104,21 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Cerrar sesión */}
+      <button
+        type="button"
+        title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+        onClick={toggle}
+        className={`${itemClasses(false, expanded)} w-full`}
+      >
+        {theme === 'light' ? (
+          <Moon className="h-5 w-5 shrink-0" />
+        ) : (
+          <Sun className="h-5 w-5 shrink-0" />
+        )}
+        <span className={labelClass(expanded)}>
+          {theme === 'light' ? 'Modo oscuro' : 'Modo claro'}
+        </span>
+      </button>
       <button
         type="button"
         title="Cerrar sesión"

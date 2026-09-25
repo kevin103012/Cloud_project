@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Banknote,
   LayoutGrid,
@@ -19,21 +19,20 @@ import {
 import CostCard from '../components/CostCard'
 import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
-import { useProposals } from '../context/ProposalsContext'
+import { useProposals } from '../hooks/useProposals'
 import { awsServices } from '../data/awsServices'
 import { costItems } from '../data/costs'
-import { regions } from '../data/regions'
 import type { CostItem, StatusLevel } from '../types/cloud'
 import { formatUSD } from '../utils/format'
 
 type Period = 'hour' | 'day' | 'week' | 'month' | 'year'
 
-const PERIODS: { id: Period; label: string; factor: number; hours: number }[] = [
-  { id: 'hour', label: 'Hora', factor: 1 / 730, hours: 1 },
-  { id: 'day', label: 'Día', factor: 24 / 730, hours: 24 },
-  { id: 'week', label: 'Semana', factor: 168 / 730, hours: 168 },
-  { id: 'month', label: 'Mes', factor: 1, hours: 730 },
-  { id: 'year', label: 'Año', factor: 12, hours: 8760 },
+const PERIODS: { id: Period; label: string; factor: number }[] = [
+  { id: 'hour', label: 'Hora', factor: 1 / 730 },
+  { id: 'day', label: 'Día', factor: 24 / 730 },
+  { id: 'week', label: 'Semana', factor: 168 / 730 },
+  { id: 'month', label: 'Mes', factor: 1 },
+  { id: 'year', label: 'Año', factor: 12 },
 ]
 
 interface Advice {
@@ -68,19 +67,12 @@ function getAdvice(monthly: number, users: number): Advice {
 type CostsTab = 'summary' | 'simulator'
 
 export default function Costs() {
-  const { proposals } = useProposals()
+  const { proposals, selectedProposalId, setSelectedProposalId } = useProposals()
+  const selected = proposals.find((proposal) => proposal.id === selectedProposalId) ?? proposals[0]
   const [tab, setTab] = useState<CostsTab>('summary')
-  const [selectedId, setSelectedId] = useState(proposals[0]?.id ?? '')
   const [period, setPeriod] = useState<Period>('month')
-  const [projectedUsers, setProjectedUsers] = useState(0)
-
-  const selected = proposals.find((p) => p.id === selectedId) ?? proposals[0]
+  const [projectedUsers, setProjectedUsers] = useState(selected?.estimatedUsers ?? 0)
   const periodInfo = PERIODS.find((p) => p.id === period) ?? PERIODS[3]
-
-  useEffect(() => {
-    const current = proposals.find((p) => p.id === selectedId) ?? proposals[0]
-    if (current) setProjectedUsers(current.estimatedUsers)
-  }, [selectedId, proposals])
 
   if (!selected) {
     return (
@@ -101,15 +93,14 @@ export default function Costs() {
   const total = monthly * periodInfo.factor
   const perUser = selected.estimatedUsers > 0 ? monthly / selected.estimatedUsers : 0
   const advice = getAdvice(monthly, selected.estimatedUsers)
-  const region = regions.find((r) => r.id === selected.regionId)
-
   const distributionMap = new Map<string, number>()
   for (const id of selected.serviceIds) {
     const service = awsServices.find((s) => s.id === id)
-    if (!service) continue
+    const item = costItems.find((cost) => cost.serviceId === id)
+    if (!service || !item) continue
     distributionMap.set(
       service.category,
-      (distributionMap.get(service.category) ?? 0) + service.monthlyCost * periodInfo.factor,
+      (distributionMap.get(service.category) ?? 0) + item.monthlyCost * periodInfo.factor,
     )
   }
   const distribution = [...distributionMap.entries()]
@@ -150,33 +141,36 @@ export default function Costs() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-bold text-black">Costos</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Estimación simulada por propuesta y período.
-        </p>
-      </div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-black">Costos</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            Estimación simulada por propuesta y período.
+          </p>
+        </div>
 
-      <div className="w-full rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-        <label className="mb-1 block text-sm font-medium text-black" htmlFor="proposal">
-          Propuesta / Planificación
-        </label>
-        <select
-          id="proposal"
-          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-black outline-none transition focus:border-black md:max-w-md"
-          value={selected.id}
-          onChange={(e) => setSelectedId(e.target.value)}
-        >
-          {proposals.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.solutionName}
-            </option>
-          ))}
-        </select>
-        <p className="mt-1 text-xs text-neutral-500">
-          {region?.name} · {selected.estimatedUsers.toLocaleString('es-ES')} usuarios ·{' '}
-          {selected.availability}
-        </p>
+        <div className="w-full md:w-80">
+          <label className="mb-1 block text-xs font-semibold text-neutral-500" htmlFor="proposal">
+            Propuesta seleccionada
+          </label>
+          <select
+            id="proposal"
+            className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm font-medium text-black shadow-sm outline-none focus:border-black focus:ring-2 focus:ring-neutral-200"
+            value={selected.id}
+            onChange={(event) => {
+              const next = proposals.find((proposal) => proposal.id === event.target.value)
+              if (!next) return
+              setSelectedProposalId(next.id)
+              setProjectedUsers(next.estimatedUsers)
+            }}
+          >
+            {proposals.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.solutionName}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <nav className="flex flex-wrap gap-2">
@@ -247,7 +241,6 @@ export default function Costs() {
                   item={item}
                   periodLabel={periodInfo.label.toLowerCase()}
                   subtotal={item.monthlyCost * periodInfo.factor}
-                  estimatedHours={periodInfo.hours}
                 />
               ))}
             </div>
@@ -260,11 +253,11 @@ export default function Costs() {
               <div className="mt-4 h-72 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={distribution} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E5" vertical={false} />
-                    <XAxis dataKey="category" tick={{ fontSize: 12 }} stroke="#737373" tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                    <XAxis dataKey="category" tick={{ fontSize: 12 }} stroke="var(--chart-axis)" tickLine={false} />
                     <YAxis
                       tick={{ fontSize: 12 }}
-                      stroke="#737373"
+                      stroke="var(--chart-axis)"
                       tickLine={false}
                       axisLine={false}
                       width={64}
@@ -273,9 +266,9 @@ export default function Costs() {
                     <Tooltip
                       formatter={(v) => formatUSD(Number(v))}
                       labelStyle={{ fontWeight: 600 }}
-                      contentStyle={{ borderRadius: 12, borderColor: '#E5E5E5' }}
+                      contentStyle={{ borderRadius: 12, borderColor: 'var(--app-border)', backgroundColor: 'var(--app-surface)', color: 'var(--app-text)' }}
                     />
-                    <Bar dataKey="cost" name="Costo" fill="#111111" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="cost" name="Costo" fill="var(--chart-primary)" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -360,11 +353,11 @@ export default function Costs() {
               <div className="mt-4 h-72 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={comparison} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E5" vertical={false} />
-                    <XAxis dataKey="category" tick={{ fontSize: 12 }} stroke="#737373" tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                    <XAxis dataKey="category" tick={{ fontSize: 12 }} stroke="var(--chart-axis)" tickLine={false} />
                     <YAxis
                       tick={{ fontSize: 12 }}
-                      stroke="#737373"
+                      stroke="var(--chart-axis)"
                       tickLine={false}
                       axisLine={false}
                       width={64}
@@ -373,10 +366,10 @@ export default function Costs() {
                     <Tooltip
                       formatter={(v) => formatUSD(Number(v))}
                       labelStyle={{ fontWeight: 600 }}
-                      contentStyle={{ borderRadius: 12, borderColor: '#E5E5E5' }}
+                      contentStyle={{ borderRadius: 12, borderColor: 'var(--app-border)', backgroundColor: 'var(--app-surface)', color: 'var(--app-text)' }}
                     />
-                    <Bar dataKey="actual" name="Actual" fill="#A3A3A3" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="simulado" name="Simulado" fill="#111111" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="actual" name="Actual" fill="var(--chart-secondary)" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="simulado" name="Simulado" fill="var(--chart-primary)" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

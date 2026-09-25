@@ -8,7 +8,6 @@ export const awsServices: CloudService[] = [
     description: 'Servicio de cómputo que permite crear servidores virtuales con diferentes capacidades de CPU, memoria y almacenamiento. Facilita aumentar o reducir instancias según la demanda de la aplicación.',
     mainFunction: 'Ejecutar el backend, las APIs y los procesos de negocio con capacidad de Auto Scaling.',
     status: 'active',
-    monthlyCost: 412.5,
   },
   {
     id: 's3',
@@ -17,7 +16,6 @@ export const awsServices: CloudService[] = [
     description: 'Almacenamiento de objetos diseñado para archivos, imágenes, documentos, registros y copias de seguridad. Ofrece alta durabilidad, control de acceso, versionado y reglas de ciclo de vida.',
     mainFunction: 'Guardar contenido estático, respaldos y archivos de la aplicación de forma segura y escalable.',
     status: 'active',
-    monthlyCost: 55.2,
   },
   {
     id: 'rds',
@@ -26,7 +24,6 @@ export const awsServices: CloudService[] = [
     description: 'Servicio administrado para bases de datos relacionales que automatiza tareas como respaldos, actualizaciones, monitoreo y recuperación. Puede operar en varias zonas de disponibilidad.',
     mainFunction: 'Alojar la información transaccional de la solución con respaldo automático y configuración Multi-AZ.',
     status: 'active',
-    monthlyCost: 486.0,
   },
   {
     id: 'iam',
@@ -35,7 +32,6 @@ export const awsServices: CloudService[] = [
     description: 'Servicio de administración de identidades y accesos para definir usuarios, grupos, roles y políticas. Permite aplicar el principio de mínimo privilegio sobre los recursos AWS.',
     mainFunction: 'Controlar quién puede acceder a la cuenta y qué acciones puede realizar sobre cada recurso.',
     status: 'active',
-    monthlyCost: 0,
   },
   {
     id: 'vpc',
@@ -44,7 +40,6 @@ export const awsServices: CloudService[] = [
     description: 'Red virtual aislada que permite organizar los recursos en subredes públicas y privadas. Incluye tablas de rutas, gateways y controles para administrar el flujo del tráfico.',
     mainFunction: 'Aislar la infraestructura y controlar la comunicación entre Internet, aplicaciones y bases de datos.',
     status: 'active',
-    monthlyCost: 96.4,
   },
   {
     id: 'route53',
@@ -53,7 +48,6 @@ export const awsServices: CloudService[] = [
     description: 'Servicio DNS administrado que conecta nombres de dominio con aplicaciones y recursos AWS. Incluye comprobaciones de estado y diferentes políticas de enrutamiento.',
     mainFunction: 'Resolver el dominio de la solución y dirigir las solicitudes hacia CloudFront o los recursos disponibles.',
     status: 'active',
-    monthlyCost: 12.0,
   },
   {
     id: 'cloudfront',
@@ -62,6 +56,5 @@ export const awsServices: CloudService[] = [
     description: 'Red global de entrega de contenido que almacena copias en ubicaciones cercanas a los usuarios. Reduce la latencia y puede proteger las solicitudes mediante HTTPS y controles de acceso.',
     mainFunction: 'Acelerar la entrega de contenido estático y dinámico, reduciendo la carga sobre los servidores principales.',
     status: 'active',
-    monthlyCost: 72.25,
   },
 ]

@@ -1,4 +1,4 @@
-import type { Proposal } from '../types/cloud'
+import type { AvailabilityLevel, Proposal } from '../types/cloud'
 
 export const appTypes: string[] = [
   'Aplicación web empresarial',
@@ -8,7 +8,7 @@ export const appTypes: string[] = [
   'Backend para app móvil',
 ]
 
-export const availabilityLevels: string[] = ['99%', '99.9%', '99.99%']
+export const availabilityLevels: AvailabilityLevel[] = ['99%', '99.9%', '99.99%']
 
 export const migrationGoals: string[] = [
   'Lift & shift',

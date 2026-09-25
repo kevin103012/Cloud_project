@@ -1,11 +1,13 @@
 import type { CloudService } from '../types/cloud'
 import { formatUSD } from '../utils/format'
+import { getServiceCost } from '../utils/cloudData'
 
 interface ServiceCardProps {
   service: CloudService
 }
 
 export default function ServiceCard({ service }: ServiceCardProps) {
+  const monthlyCost = getServiceCost(service.id)?.monthlyCost
   return (
     <div className="group rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
       <div className="flex items-start justify-between gap-2">
@@ -30,7 +32,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
         {service.description}
       </p>
       <p className="mt-3 text-xs text-neutral-400">
-        ≈ {formatUSD(service.monthlyCost)}/mes
+        {monthlyCost === undefined ? 'Sin estimación de costo' : `≈ ${formatUSD(monthlyCost)}/mes`}
       </p>
     </div>
   )

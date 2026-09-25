@@ -19,8 +19,8 @@ export const regions: Region[] = [
     id: 'sa-east-1',
     name: 'Sudamérica (São Paulo)',
     location: 'São Paulo, Brasil',
-    services: ['ec2', 's3'],
-    status: 'standby',
+    services: ['ec2', 's3', 'rds', 'iam', 'vpc', 'route53', 'cloudfront'],
+    status: 'active',
   },
   {
     id: 'us-west-2',

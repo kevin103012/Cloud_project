@@ -8,27 +8,29 @@ import {
   ShieldCheck,
   Wallet,
 } from 'lucide-react'
-import { useState } from 'react'
 import CostChart from '../components/CostChart'
 import RegionCard from '../components/RegionCard'
 import SecurityCard from '../components/SecurityCard'
 import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
-import { useProposals } from '../context/ProposalsContext'
-import { securitySummary } from '../data/dashboard'
-import { awsServices } from '../data/awsServices'
+import { useProposals } from '../hooks/useProposals'
 import { costItems } from '../data/costs'
 import { regions } from '../data/regions'
-import { securityChecks } from '../data/security'
+import {
+  countServicesInRegion,
+  getSecurityChecksForProposal,
+  getValidServicesForProposal,
+  summarizeSecurity,
+} from '../utils/cloudData'
 import { formatUSD } from '../utils/format'
 
 export default function Dashboard() {
-  const { proposals } = useProposals()
-  const [selectedId, setSelectedId] = useState(proposals[0]?.id ?? '')
-  const selected = proposals.find((proposal) => proposal.id === selectedId) ?? proposals[0]
+  const { proposals, selectedProposalId, setSelectedProposalId } = useProposals()
+  const selected = proposals.find((proposal) => proposal.id === selectedProposalId) ?? proposals[0]
   const region = regions.find((item) => item.id === selected?.regionId)
-  const selectedServices = awsServices.filter((service) => selected?.serviceIds.includes(service.id))
-  const selectedCostItems = costItems.filter((item) => selected?.serviceIds.includes(item.serviceId))
+  const selectedServices = selected ? getValidServicesForProposal(selected) : []
+  const selectedServiceIds = new Set(selectedServices.map((service) => service.id))
+  const selectedCostItems = costItems.filter((item) => selectedServiceIds.has(item.serviceId))
   const monthlyCost = selectedCostItems.reduce((total, item) => total + item.monthlyCost, 0)
   const activeRegionCount = regions.filter((item) => item.status === 'active').length
   const architectureStatus = region?.status === 'active' ? 'Operativa' : 'En revisión'
@@ -36,15 +38,9 @@ export default function Dashboard() {
     service: item.serviceName,
     cost: item.monthlyCost,
   }))
-  const issues = securityChecks.filter((c) => c.status !== 'ok')
-
-  function deployedServiceCount(regionId: string) {
-    return new Set(
-      proposals
-        .filter((proposal) => proposal.regionId === regionId)
-        .flatMap((proposal) => proposal.serviceIds),
-    ).size
-  }
+  const selectedSecurityChecks = getSecurityChecksForProposal(selected)
+  const securitySummary = summarizeSecurity(selectedSecurityChecks)
+  const issues = selectedSecurityChecks.filter((check) => check.status !== 'ok')
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,7 +59,7 @@ export default function Dashboard() {
             id="dashboard-proposal"
             className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-black outline-none transition focus:border-black"
             value={selected?.id ?? ''}
-            onChange={(event) => setSelectedId(event.target.value)}
+            onChange={(event) => setSelectedProposalId(event.target.value)}
             disabled={proposals.length === 0}
           >
             {proposals.length === 0 ? (
@@ -109,14 +105,14 @@ export default function Dashboard() {
           icon={Banknote}
         />
         <StatCard
-          title="Recursos Cloud"
+          title="Servicios estimados"
           value={String(selectedCostItems.length)}
-          subtitle="Recursos con estimación de costos"
+          subtitle="Servicios con una línea de costo"
           icon={Server}
         />
         <StatCard
           title="Estado de seguridad"
-          value={`${securitySummary.ok}/${securityChecks.length}`}
+          value={`${securitySummary.ok}/${selectedSecurityChecks.length}`}
           subtitle={`${securitySummary.ok} correctos · ${securitySummary.warning} en revisión · ${securitySummary.error} problema`}
           icon={ShieldCheck}
         />
@@ -148,7 +144,7 @@ export default function Dashboard() {
           <p className="text-xs text-neutral-500">Resumen del estado actual</p>
           <p className="mt-3 text-4xl font-bold text-black">
             {securitySummary.ok}
-            <span className="text-lg text-neutral-400">/{securityChecks.length}</span>
+            <span className="text-lg text-neutral-400">/{selectedSecurityChecks.length}</span>
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <StatusBadge status="ok" label={`${securitySummary.ok} correctos`} />
@@ -181,7 +177,7 @@ export default function Dashboard() {
               key={awsRegion.id}
               region={awsRegion}
               selected={awsRegion.id === region?.id}
-              deployedServiceCount={deployedServiceCount(awsRegion.id)}
+              deployedServiceCount={countServicesInRegion(proposals, awsRegion.id)}
             />
           ))}
         </div>

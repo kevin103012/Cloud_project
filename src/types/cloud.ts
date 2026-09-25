@@ -14,7 +14,6 @@ export interface CloudService {
   description: string
   mainFunction: string
   status: UsageStatus
-  monthlyCost: number
 }
 
 export interface CostItem {
@@ -23,15 +22,10 @@ export interface CostItem {
   serviceName: string
   quantity: number
   unit: string
-  hours: number
   unitCost: number
+  unitCostLabel: string
   monthlyCost: number
   scalesWithUsers: boolean
-}
-
-export interface CostByCategory {
-  category: string
-  cost: number
 }
 
 export type RegionStatus = 'active' | 'standby'
@@ -74,6 +68,7 @@ export interface SecurityCheck {
   title: string
   description: string
   status: StatusLevel
+  serviceIds?: string[]
 }
 
 export type Owner = 'AWS' | 'Cliente' | 'Compartido'
@@ -98,6 +93,7 @@ export interface NetworkNode {
   kind: NetworkKind
   description: string
   status: StatusLevel
+  serviceId?: string
 }
 
 export interface NetworkEdge {
@@ -106,22 +102,3 @@ export interface NetworkEdge {
   label: string
 }
 
-export interface TrendPoint {
-  month: string
-  cost: number
-}
-
-export interface ResourceStat {
-  label: string
-  value: number
-}
-
-export interface DashboardSummary {
-  servicesUsed: number
-  selectedRegionId: string
-  monthlyCost: number
-  annualCost: number
-  securityScore: number
-  totalResources: number
-  architectureStatus: string
-}

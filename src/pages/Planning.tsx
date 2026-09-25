@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Boxes, ClipboardList, Plus } from 'lucide-react'
+import { Boxes, ClipboardList, Plus, RotateCcw } from 'lucide-react'
 import ProposalForm from '../components/ProposalForm'
 import ProposalList from '../components/ProposalList'
 import ServiceCard from '../components/ServiceCard'
 import { awsServices } from '../data/awsServices'
-import { useProposals } from '../context/ProposalsContext'
+import { useProposals } from '../hooks/useProposals'
 import type { Proposal } from '../types/cloud'
 
 type Tab = 'list' | 'new' | 'services'
@@ -17,7 +17,7 @@ const tabs = [
 
 export default function Planning() {
   const [tab, setTab] = useState<Tab>('list')
-  const { proposals, addProposal } = useProposals()
+  const { proposals, addProposal, resetProposals } = useProposals()
 
   function handleRegister(proposal: Proposal) {
     addProposal(proposal)
@@ -33,7 +33,7 @@ export default function Planning() {
         </p>
       </div>
 
-      <nav className="flex flex-wrap gap-2">
+      <nav className="flex flex-wrap items-center gap-2">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -50,6 +50,15 @@ export default function Planning() {
             {id === 'list' && ` (${proposals.length})`}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={resetProposals}
+          className="ml-auto flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-neutral-100"
+          title="Restablecer las propuestas de ejemplo"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Restablecer datos
+        </button>
       </nav>
 
       {tab === 'list' && <ProposalList proposals={proposals} />}

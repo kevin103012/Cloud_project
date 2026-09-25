@@ -21,6 +21,7 @@ export const securityChecks: SecurityCheck[] = [
     title: 'Cifrado de buckets S3',
     description: 'Todos los buckets tienen cifrado en reposo habilitado.',
     status: 'ok',
+    serviceIds: ['s3'],
   },
   {
     id: 'sec-004',
@@ -28,6 +29,7 @@ export const securityChecks: SecurityCheck[] = [
     title: 'Security groups expuestos',
     description: 'Un grupo de seguridad permite SSH abierto a 0.0.0.0/0.',
     status: 'error',
+    serviceIds: ['ec2', 'vpc'],
   },
   {
     id: 'sec-005',
@@ -42,6 +44,7 @@ export const securityChecks: SecurityCheck[] = [
     title: 'Respaldos automatizados RDS',
     description: 'Snapshots diarios con retención de 7 días.',
     status: 'ok',
+    serviceIds: ['rds'],
   },
   {
     id: 'sec-007',

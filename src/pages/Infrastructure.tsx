@@ -1,33 +1,21 @@
 import { Activity, CheckCircle2, Globe2, MapPin, Server } from 'lucide-react'
-import { useMemo, useState } from 'react'
 import RegionCard from '../components/RegionCard'
 import StatusBadge from '../components/StatusBadge'
-import { useProposals } from '../context/ProposalsContext'
-import { awsServices } from '../data/awsServices'
+import WorldMap from '../components/WorldMap'
+import { useProposals } from '../hooks/useProposals'
 import { regions } from '../data/regions'
-
-const markerPositions: Record<string, { left: string; top: string }> = {
-  'us-west-2': { left: '17%', top: '35%' },
-  'us-east-1': { left: '29%', top: '31%' },
-  'sa-east-1': { left: '38%', top: '66%' },
-  'eu-west-1': { left: '50%', top: '28%' },
-}
+import { countServicesInRegion, getValidServicesForProposal } from '../utils/cloudData'
 
 export default function Infrastructure() {
-  const { proposals } = useProposals()
-  const [selectedId, setSelectedId] = useState(proposals[0]?.id ?? '')
-  const selectedProposal = proposals.find((proposal) => proposal.id === selectedId) ?? proposals[0]
-  const selectedRegion = regions.find((region) => region.id === selectedProposal?.regionId) ?? regions[0]
-
-  const deployedServices = useMemo(
-    () => awsServices.filter((service) => selectedProposal?.serviceIds.includes(service.id)),
-    [selectedProposal],
-  )
+  const { proposals, selectedProposalId, setSelectedProposalId } = useProposals()
+  const selectedProposal = proposals.find((proposal) => proposal.id === selectedProposalId) ?? proposals[0]
+  const selectedRegion = regions.find((region) => region.id === selectedProposal?.regionId)
+  const deployedServices = selectedProposal ? getValidServicesForProposal(selectedProposal) : []
 
   const servicesInRegion = new Map(
     regions.map((region) => [
       region.id,
-      selectedProposal?.regionId === region.id ? deployedServices.length : 0,
+      countServicesInRegion(proposals, region.id),
     ]),
   )
 
@@ -55,7 +43,7 @@ export default function Infrastructure() {
           <select
             id="infrastructure-proposal"
             value={selectedProposal.id}
-            onChange={(event) => setSelectedId(event.target.value)}
+            onChange={(event) => setSelectedProposalId(event.target.value)}
             className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm font-medium text-black shadow-sm outline-none focus:border-black focus:ring-2 focus:ring-neutral-200"
           >
             {proposals.map((proposal) => (
@@ -94,41 +82,14 @@ export default function Infrastructure() {
             <div><h2 className="text-lg font-semibold text-black">Mapa de regiones AWS</h2><p className="mt-1 text-xs text-neutral-500">La región resaltada corresponde a la propuesta seleccionada.</p></div>
             <StatusBadge status={selectedRegion.status === 'active' ? 'ok' : 'warning'} label={selectedRegion.status === 'active' ? 'Región activa' : 'Región standby'} />
           </div>
-          <div className="relative mt-5 min-h-[340px] overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100">
-            <div className="absolute inset-0 opacity-60" style={{ backgroundImage: 'linear-gradient(#e5e5e5 1px, transparent 1px), linear-gradient(90deg, #e5e5e5 1px, transparent 1px)', backgroundSize: '44px 44px' }} />
-            <div className="absolute left-[8%] top-[20%] h-[36%] w-[25%] rotate-[-10deg] rounded-[45%] bg-white/80" />
-            <div className="absolute left-[32%] top-[48%] h-[38%] w-[16%] rotate-[18deg] rounded-[48%] bg-white/80" />
-            <div className="absolute left-[47%] top-[15%] h-[24%] w-[30%] rotate-[8deg] rounded-[48%] bg-white/80" />
-            <div className="absolute left-[70%] top-[43%] h-[30%] w-[22%] rotate-[-12deg] rounded-[48%] bg-white/80" />
-            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-              <path d="M29 31 C36 27, 43 27, 50 28" fill="none" stroke="#a3a3a3" strokeDasharray="1.5 1.5" strokeWidth="0.7" />
-              <path d="M29 31 C31 44, 35 56, 38 66" fill="none" stroke="#a3a3a3" strokeDasharray="1.5 1.5" strokeWidth="0.7" />
-              <path d="M17 35 C21 32, 25 31, 29 31" fill="none" stroke="#a3a3a3" strokeDasharray="1.5 1.5" strokeWidth="0.7" />
-            </svg>
-            {regions.map((region) => {
-              const position = markerPositions[region.id] ?? { left: '50%', top: '50%' }
-              const active = region.id === selectedRegion.id
-              return (
-                <button
-                  key={region.id}
-                  type="button"
-                  title={`${region.name} · ${region.location}`}
-                  onClick={() => {
-                    const proposal = proposals.find((item) => item.regionId === region.id)
-                    if (proposal) setSelectedId(proposal.id)
-                  }}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 text-left"
-                  style={position}
-                >
-                  <span className={`relative flex h-8 w-8 items-center justify-center rounded-full border-4 border-white shadow-lg ${active ? 'bg-black ring-8 ring-neutral-300/70' : region.status === 'active' ? 'bg-green-500' : 'bg-amber-500'}`}>
-                    <MapPin className="h-4 w-4 text-white" />
-                  </span>
-                  <span className={`absolute left-1/2 top-10 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-1 text-[10px] font-semibold shadow-sm ${active ? 'bg-black text-white' : 'bg-white text-neutral-600'}`}>{region.id}</span>
-                </button>
-              )
-            })}
-            <div className="absolute bottom-3 left-3 flex flex-wrap gap-3 rounded-lg bg-white/90 px-3 py-2 text-[11px] text-neutral-600 shadow-sm backdrop-blur-sm"><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-black" />Seleccionada</span><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-green-500" />Activa</span><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-amber-500" />Standby</span></div>
-          </div>
+          <WorldMap
+            selectedRegionId={selectedRegion.id}
+            availableRegionIds={[...new Set(proposals.map((proposal) => proposal.regionId))]}
+            onSelect={(regionId) => {
+              const proposal = proposals.find((item) => item.regionId === regionId)
+              if (proposal) setSelectedProposalId(proposal.id)
+            }}
+          />
         </div>
 
         <div className="rounded-2xl border border-black bg-black p-6 text-white shadow-sm">
@@ -146,7 +107,18 @@ export default function Infrastructure() {
       <section>
         <div className="mb-3 flex items-end justify-between gap-3"><div><h2 className="text-lg font-semibold text-black">Regiones disponibles</h2><p className="text-xs text-neutral-500">Contexto global de las regiones configuradas en los mocks.</p></div><span className="text-xs font-medium text-neutral-400">{regions.length} regiones</span></div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {regions.map((region) => <RegionCard key={region.id} region={region} selected={region.id === selectedRegion.id} deployedServiceCount={servicesInRegion.get(region.id)} onSelect={() => { const proposal = proposals.find((item) => item.regionId === region.id); if (proposal) setSelectedId(proposal.id) }} />)}
+          {regions.map((region) => {
+            const proposal = proposals.find((item) => item.regionId === region.id)
+            return (
+              <RegionCard
+                key={region.id}
+                region={region}
+                selected={region.id === selectedRegion.id}
+                deployedServiceCount={servicesInRegion.get(region.id)}
+                onSelect={proposal ? () => setSelectedProposalId(proposal.id) : undefined}
+              />
+            )
+          })}
         </div>
       </section>
 
