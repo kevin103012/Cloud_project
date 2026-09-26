@@ -16,12 +16,9 @@ type Coordinates = [number, number]
 
 const geoUrl = '/maps/countries-110m.json'
 
-const regionCoordinates: Record<string, Coordinates> = {
-  'us-west-2': [-122.68, 45.52],
-  'us-east-1': [-77.44, 37.54],
-  'sa-east-1': [-46.63, -23.55],
-  'eu-west-1': [-6.26, 53.35],
-}
+const regionCoordinates: Record<string, Coordinates> = Object.fromEntries(
+  regions.map((region) => [region.id, [region.lng, region.lat] as Coordinates]),
+)
 
 interface WorldMapProps {
   selectedRegionId: string

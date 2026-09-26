@@ -6,7 +6,21 @@ export const appTypes: string[] = [
   'E-commerce',
   'Analítica de datos',
   'Backend para app móvil',
+  'Aplicación de IA / Machine Learning',
+  'Streaming / Contenido multimedia',
+  'IoT / Dispositivos conectados',
 ]
+
+export const recommendedServices: Record<string, string[]> = {
+  'Aplicación web empresarial': ['ec2', 'rds', 's3', 'cloudfront', 'route53', 'vpc', 'iam', 'cloudwatch', 'kms'],
+  'API / Microservicios': ['ec2', 'rds', 'vpc', 'iam', 'lambda', 'sqs', 'cloudwatch'],
+  'E-commerce': ['ec2', 'rds', 's3', 'cloudfront', 'route53', 'vpc', 'elasticache', 'sns', 'cloudwatch'],
+  'Analítica de datos': ['s3', 'ec2', 'rds', 'lambda', 'cloudwatch'],
+  'Backend para app móvil': ['ec2', 'rds', 's3', 'cloudfront', 'vpc', 'lambda', 'sns', 'cloudwatch'],
+  'Aplicación de IA / Machine Learning': ['ec2', 's3', 'rds', 'lambda', 'elasticache', 'cloudwatch'],
+  'Streaming / Contenido multimedia': ['cloudfront', 's3', 'ec2', 'sqs', 'cloudwatch'],
+  'IoT / Dispositivos conectados': ['ec2', 'rds', 's3', 'route53', 'lambda', 'sqs', 'sns', 'cloudwatch'],
+}
 
 export const availabilityLevels: AvailabilityLevel[] = ['99%', '99.9%', '99.99%']
 

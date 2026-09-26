@@ -6,7 +6,7 @@ import Loader from '../components/Loader'
 import { useTheme } from '../hooks/useTheme'
 
 const linkClass =
-  'rounded-md px-4 py-2 font-medium text-black transition-all duration-200 hover:scale-[1.02] hover:bg-black hover:text-white'
+  'rounded-md px-4 py-2 font-medium text-foreground transition-all duration-200 hover:scale-[1.02] hover:bg-brand-700 hover:text-white'
 
 export default function Landing() {
   const navigate = useNavigate()

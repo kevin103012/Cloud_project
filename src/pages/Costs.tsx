@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import {
   Banknote,
+  Cpu,
   LayoutGrid,
   Lightbulb,
+  MapPin,
   TrendingUp,
   Users,
   Wallet,
@@ -21,8 +23,10 @@ import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
 import { useProposals } from '../hooks/useProposals'
 import { awsServices } from '../data/awsServices'
-import { costItems } from '../data/costs'
+import { serviceHardware, estimatedStorageGb } from '../data/hardware'
+import { regions } from '../data/regions'
 import type { CostItem, StatusLevel } from '../types/cloud'
+import { getServiceCost, recommendTier } from '../utils/cloudData'
 import { formatUSD } from '../utils/format'
 
 type Period = 'hour' | 'day' | 'week' | 'month' | 'year'
@@ -85,8 +89,9 @@ export default function Costs() {
     )
   }
 
+  const selectedRegion = regions.find((region) => region.id === selected.regionId)
   const lines: CostItem[] = selected.serviceIds.flatMap((id) => {
-    const item = costItems.find((c) => c.serviceId === id)
+    const item = getServiceCost(id, selected.regionId)
     return item ? [item] : []
   })
   const monthly = lines.reduce((sum, item) => sum + item.monthlyCost, 0)
@@ -96,7 +101,7 @@ export default function Costs() {
   const distributionMap = new Map<string, number>()
   for (const id of selected.serviceIds) {
     const service = awsServices.find((s) => s.id === id)
-    const item = costItems.find((cost) => cost.serviceId === id)
+    const item = getServiceCost(id, selected.regionId)
     if (!service || !item) continue
     distributionMap.set(
       service.category,
@@ -120,11 +125,14 @@ export default function Costs() {
   const deltaPct = monthly > 0 ? (delta / monthly) * 100 : 0
   const simAdvice = getAdvice(simMonthly, safeProjected)
   const fixedNames = lines.filter((l) => !l.scalesWithUsers).map((l) => l.serviceName)
+  const relevantHardware = serviceHardware.filter((hardware) =>
+    selected.serviceIds.includes(hardware.serviceId),
+  )
 
   const compareMap = new Map<string, { actual: number; simulado: number }>()
   for (const id of selected.serviceIds) {
     const service = awsServices.find((s) => s.id === id)
-    const item = costItems.find((c) => c.serviceId === id)
+    const item = getServiceCost(id, selected.regionId)
     if (!service || !item) continue
     const prev = compareMap.get(service.category) ?? { actual: 0, simulado: 0 }
     compareMap.set(service.category, {
@@ -147,6 +155,12 @@ export default function Costs() {
           <p className="mt-1 text-sm text-neutral-500">
             Estimación simulada por propuesta y período.
           </p>
+          {selectedRegion && (
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600">
+              <MapPin className="h-3.5 w-3.5" />
+              Precios de {selectedRegion.name} · factor ×{selectedRegion.priceFactor}
+            </p>
+          )}
         </div>
 
         <div className="w-full md:w-80">
@@ -324,7 +338,7 @@ export default function Costs() {
             />
           </div>
 
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               title="Mensual simulado"
               value={formatUSD(simMonthly)}
@@ -344,6 +358,84 @@ export default function Costs() {
               subtitle={`${safeProjected.toLocaleString('es-ES')} usuarios`}
               icon={Users}
             />
+          </div>
+
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">Usuarios proyectados</p>
+              <p className="mt-2 text-2xl font-bold text-black">{safeProjected.toLocaleString('es-ES')}</p>
+              <p className="mt-1 text-xs text-neutral-500">vCPU, RAM y storage se derivan de esta cifra</p>
+            </div>
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">Almacenamiento estimado</p>
+              <p className="mt-2 text-2xl font-bold text-black">{estimatedStorageGb(safeProjected).toLocaleString('es-ES')} GB</p>
+              <p className="mt-1 text-xs text-neutral-500">≈ 50 GB cada 1000 usuarios (mín. 100 GB)</p>
+            </div>
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">Total vCPU</p>
+              <p className="mt-2 text-2xl font-bold text-black">
+                {relevantHardware.length > 0
+                  ? relevantHardware.reduce((sum, hw) => sum + recommendTier(hw, safeProjected).vcpus, 0)
+                  : 0}
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">Suma de instancias sugeridas</p>
+            </div>
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">Total RAM</p>
+              <p className="mt-2 text-2xl font-bold text-black">
+                {relevantHardware.length > 0
+                  ? relevantHardware.reduce((sum, hw) => sum + recommendTier(hw, safeProjected).ramGb, 0)
+                  : 0}{' '}
+                <span className="text-sm font-normal text-neutral-500">GB</span>
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">Suma de instancias sugeridas</p>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-black" />
+              <div>
+                <h2 className="text-lg font-semibold text-black">Hardware recomendado</h2>
+                <p className="text-xs text-neutral-500">
+                  Instancia sugerida para {safeProjected.toLocaleString('es-ES')} usuarios proyectados.
+                </p>
+              </div>
+            </div>
+            {relevantHardware.length === 0 ? (
+              <p className="mt-4 text-sm text-neutral-500">
+                La propuesta no incluye servicios de cómputo o base de datos.
+              </p>
+            ) : (
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {relevantHardware.map((hardware) => {
+                  const current = recommendTier(hardware, safeProjected)
+                  const base = hardware.tiers[0]
+                  const changed = current.instanceType !== base.instanceType
+                  return (
+                    <div key={hardware.serviceId} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-bold text-black">{hardware.serviceName}</p>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${changed ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                          {changed ? `↑ desde ${base.instanceType}` : 'Base'}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-black">{current.instanceType}</p>
+                      <p className="text-xs text-neutral-500">{current.note}</p>
+                      <div className="mt-2 flex gap-3 text-xs text-neutral-600">
+                        <span>{current.vcpus} vCPU</span>
+                        <span>·</span>
+                        <span>{current.ramGb} GB RAM</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <p className="mt-4 rounded-lg bg-neutral-100 p-3 text-sm text-neutral-700">
+              S3 es almacenamiento serverless: escala automáticamente sin cambiar el hardware
+              asignado. El almacenamiento RDS se calcula como ≈ 50 GB cada 1000 usuarios.
+            </p>
           </section>
 
           <section className="grid gap-4 xl:grid-cols-3">

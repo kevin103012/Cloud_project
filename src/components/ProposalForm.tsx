@@ -1,14 +1,17 @@
 import { useState } from 'react'
+import { LocateFixed } from 'lucide-react'
 import type { AvailabilityLevel, Proposal } from '../types/cloud'
 import { awsServices } from '../data/awsServices'
 import {
   appTypes,
   availabilityLevels,
   migrationGoals,
+  recommendedServices,
 } from '../data/planning'
 import { regions } from '../data/regions'
 import { formatUSD } from '../utils/format'
 import { getMonthlyCost, getServiceCost } from '../utils/cloudData'
+import { findNearestRegion } from '../utils/geo'
 
 interface ProposalFormProps {
   onSubmit: (proposal: Proposal) => void
@@ -31,6 +34,9 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
   const [serviceIds, setServiceIds] = useState<string[]>([])
   const [migrationGoal, setMigrationGoal] = useState(migrationGoals[0])
   const [error, setError] = useState('')
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [geoError, setGeoError] = useState('')
+  const [nearestInfo, setNearestInfo] = useState<{ name: string; distanceKm: number; source: 'GPS' | 'IP' } | null>(null)
 
   function toggleService(id: string) {
     setServiceIds((prev) =>
@@ -38,17 +44,73 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
     )
   }
 
+  function handleLocate() {
+    if (!('geolocation' in navigator)) {
+      setGeoStatus('error')
+      setGeoError('Tu navegador no soporta geolocalización.')
+      return
+    }
+    setGeoStatus('loading')
+    setGeoError('')
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords
+        selectNearestFromCoords(latitude, longitude, 'GPS')
+      },
+      async (error) => {
+        // Fallback por IP pública si el GPS falla o se deniega el permiso
+        try {
+          const response = await fetch('https://ipapi.co/json/')
+          if (!response.ok) throw new Error('IP lookup failed')
+          const data = await response.json()
+          if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+            selectNearestFromCoords(data.latitude, data.longitude, 'IP')
+            return
+          }
+        } catch {
+          // silencio
+        }
+        let message = 'No se pudo obtener la ubicación.'
+        if (error.code === 1) message = 'Permiso denegado. Intentamos obtener tu ubicación por IP sin éxito.'
+        else if (error.code === 2) message = 'Ubicación no disponible. Verifica tu conexión.'
+        else if (error.code === 3) message = 'La solicitud tardó demasiado. Intenta de nuevo.'
+        setGeoError(message)
+        setGeoStatus('error')
+      },
+      { timeout: 10000, maximumAge: 300000, enableHighAccuracy: false },
+    )
+  }
+
+  function selectNearestFromCoords(lat: number, lng: number, source: 'GPS' | 'IP') {
+    const result = findNearestRegion(lat, lng, (region) => region.status === 'active')
+    if (result) {
+      setRegionId(result.region.id)
+      setServiceIds((current) =>
+        current.filter((serviceId) => result.region.services.includes(serviceId)),
+      )
+      setNearestInfo({ name: result.region.name, distanceKm: result.distanceKm, source })
+      setGeoStatus('done')
+    } else {
+      setGeoError('No se encontró una región activa cercana.')
+      setGeoStatus('error')
+    }
+  }
+
   const selectedRegion = regions.find((region) => region.id === regionId)
   const availableServices = awsServices.filter((service) => selectedRegion?.services.includes(service.id))
-  const selectedMonthly = getMonthlyCost(serviceIds)
+  const recommendedIds = recommendedServices[appType] ?? []
+  const recommendedAvailable = recommendedIds.filter((id) =>
+    availableServices.some((service) => service.id === id),
+  )
+  const selectedMonthly = getMonthlyCost(serviceIds, regionId)
   const topServices = [...availableServices]
     .sort(
       (a, b) =>
-        (getServiceCost(b.id)?.monthlyCost ?? 0) -
-        (getServiceCost(a.id)?.monthlyCost ?? 0),
+        (getServiceCost(b.id, regionId)?.monthlyCost ?? 0) -
+        (getServiceCost(a.id, regionId)?.monthlyCost ?? 0),
     )
     .slice(0, 4)
-  const maxCost = getServiceCost(topServices[0]?.id ?? '')?.monthlyCost ?? 0
+  const maxCost = getServiceCost(topServices[0]?.id ?? '', regionId)?.monthlyCost ?? 0
   const previewRegion = regions.find((r) => r.id === regionId)
 
   function handleSubmit(event: React.FormEvent) {
@@ -143,6 +205,26 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={handleLocate}
+          disabled={geoStatus === 'loading'}
+          className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-neutral-300 px-2.5 py-1 text-xs font-medium text-black transition hover:bg-neutral-100 disabled:opacity-50"
+        >
+          <LocateFixed className="h-3.5 w-3.5" />
+          {geoStatus === 'loading' ? 'Obteniendo…' : 'Usar mi ubicación'}
+        </button>
+        {geoStatus === 'done' && nearestInfo && (
+          <p className="mt-1.5 text-xs text-green-700">
+            Región recomendada: {nearestInfo.name} (a{' '}
+            {Math.round(nearestInfo.distanceKm).toLocaleString('es-ES')} km, vía {nearestInfo.source})
+          </p>
+        )}
+        {geoStatus === 'error' && (
+          <p className="mt-1.5 text-xs text-amber-700">
+            {geoError || 'No se pudo obtener la ubicación. Elige la región manualmente.'}
+          </p>
+        )}
       </div>
 
       <div className="md:col-span-2">
@@ -192,10 +274,32 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
       </div>
 
       <div className="md:col-span-2">
-        <span className={labelClass}>Servicios Cloud seleccionados</span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className={labelClass}>Servicios Cloud seleccionados</span>
+          {recommendedAvailable.length > 0 && (
+            <button
+              type="button"
+              onClick={() =>
+                setServiceIds((prev) => [...new Set([...prev, ...recommendedAvailable])])
+              }
+              className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs font-medium text-black transition hover:bg-neutral-100"
+            >
+              Usar recomendados
+            </button>
+          )}
+        </div>
+        {recommendedAvailable.length > 0 && (
+          <p className="mb-2 text-xs text-neutral-500">
+            Sugeridos para {appType}:{' '}
+            {recommendedAvailable
+              .map((id) => awsServices.find((service) => service.id === id)?.name ?? id)
+              .join(', ')}
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           {availableServices.map((s) => {
             const active = serviceIds.includes(s.id)
+            const suggested = recommendedIds.includes(s.id)
             return (
               <button
                 key={s.id}
@@ -208,6 +312,15 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
                 }`}
               >
                 {s.name}
+                {suggested && (
+                  <span
+                    className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                      active ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-700'
+                    }`}
+                  >
+                    Sugerido
+                  </span>
+                )}
               </button>
             )
           })}
@@ -296,7 +409,7 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
           <div className="mt-3 flex flex-col gap-2.5">
             {topServices.map((s) => {
               const selected = serviceIds.includes(s.id)
-              const monthlyCost = getServiceCost(s.id)?.monthlyCost ?? 0
+              const monthlyCost = getServiceCost(s.id, regionId)?.monthlyCost ?? 0
               return (
                 <button
                   key={s.id}

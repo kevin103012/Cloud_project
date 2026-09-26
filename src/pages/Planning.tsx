@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Boxes, ClipboardList, Plus, RotateCcw } from 'lucide-react'
+import { Boxes, ClipboardList, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import ProposalForm from '../components/ProposalForm'
 import ProposalList from '../components/ProposalList'
 import ServiceCard from '../components/ServiceCard'
@@ -17,7 +17,7 @@ const tabs = [
 
 export default function Planning() {
   const [tab, setTab] = useState<Tab>('list')
-  const { proposals, addProposal, resetProposals } = useProposals()
+  const { proposals, addProposal, resetProposals, clearProposals } = useProposals()
 
   function handleRegister(proposal: Proposal) {
     addProposal(proposal)
@@ -58,6 +58,19 @@ export default function Planning() {
         >
           <RotateCcw className="h-4 w-4" />
           Restablecer datos
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm('¿Borrar todas las propuestas? Esta acción no se puede deshacer.')) {
+              clearProposals()
+            }
+          }}
+          className="flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+          title="Borrar todas las propuestas"
+        >
+          <Trash2 className="h-4 w-4" />
+          Borrar datos
         </button>
       </nav>
 

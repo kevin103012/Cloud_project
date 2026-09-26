@@ -9,6 +9,7 @@ import { getServiceCost } from '../utils/cloudData'
 export default function Services() {
   const { proposals, selectedProposalId, setSelectedProposalId } = useProposals()
   const selected = proposals.find((proposal) => proposal.id === selectedProposalId) ?? proposals[0]
+  const selectedRegion = regions.find((region) => region.id === selected?.regionId)
 
   return (
     <div className="flex flex-col gap-6">
@@ -19,7 +20,7 @@ export default function Services() {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {awsServices.map((service) => {
-          const cost = getServiceCost(service.id)
+          const cost = getServiceCost(service.id, selected?.regionId)
           const used = selected?.serviceIds.includes(service.id) ?? false
           const availableRegions = regions.filter((region) => region.services.includes(service.id))
           return (
@@ -32,7 +33,7 @@ export default function Services() {
               <p className="mt-3 text-xs font-semibold tracking-wide text-neutral-400 uppercase">Descripción</p>
               <p className="mt-1 text-sm leading-6 text-neutral-600">{service.description}</p>
               <div className="mt-4 space-y-2 border-t border-neutral-200 pt-4 text-xs text-neutral-500">
-                <p className="flex items-center gap-2"><Wallet className="h-4 w-4" />{cost ? `${formatUSD(cost.monthlyCost)} estimados al mes` : 'Sin costo configurado'}</p>
+                <p className="flex items-center gap-2"><Wallet className="h-4 w-4" />{cost ? `${formatUSD(cost.monthlyCost)}/mes en ${selectedRegion?.name ?? 'Virginia (base)'}` : 'Sin costo configurado'}</p>
                 <p className="flex items-center gap-2"><MapPin className="h-4 w-4" />{availableRegions.length} regiones configuradas</p>
               </div>
             </article>

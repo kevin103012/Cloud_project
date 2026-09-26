@@ -159,6 +159,7 @@ src/
 │   ├── awsServices.ts
 │   ├── costs.ts
 │   ├── dataConsistency.test.ts
+│   ├── hardware.ts
 │   ├── network.ts
 │   ├── planning.ts
 │   ├── regions.ts
@@ -184,7 +185,9 @@ src/
 ├── types/cloud.ts
 ├── utils/
 │   ├── cloudData.ts
-│   └── format.ts
+│   ├── format.ts
+│   ├── geo.test.ts
+│   └── geo.ts
 ├── App.tsx
 ├── index.css
 └── main.tsx
@@ -406,10 +409,15 @@ interface Region {
   location: string
   services: string[]
   status: 'active' | 'standby'
+  priceFactor: number
+  lat: number
+  lng: number
 }
 ```
 
-`services` indica qué servicios están configurados en esa región.
+- `services` indica qué servicios están configurados en esa región.
+- `priceFactor` multiplica los precios base (Virginia = 1.00) para regionalizar costos.
+- `lat` y `lng` ubican la región en el mapa y en la geolocalización.
 
 ### Proposal
 
@@ -436,6 +444,41 @@ Un control puede aplicarse a todos los proyectos o solamente a determinados serv
 
 - `NetworkNode`: componente de la arquitectura.
 - `NetworkEdge`: conexión entre dos nodos.
+
+### ResponsibilityItem
+
+Representa una responsabilidad del modelo compartido:
+
+```ts
+interface ResponsibilityItem {
+  id: string
+  task: string
+  owner: 'AWS' | 'Cliente' | 'Compartido'
+  layer: string
+}
+```
+
+### HardwareTier y ServiceHardware
+
+Definen los tiers de instancia por servicio (EC2, RDS y ElastiCache, todos basados en usuarios):
+
+```ts
+interface HardwareTier {
+  instanceType: string
+  minUsers: number
+  minStorageGb: number
+  vcpus: number
+  ramGb: number
+  note: string
+}
+
+interface ServiceHardware {
+  serviceId: string
+  serviceName: string
+  dimension: 'users' | 'storage'
+  tiers: HardwareTier[]
+}
+```
 
 ---
 
@@ -464,13 +507,25 @@ Reglas principales:
 
 `src/utils/cloudData.ts` evita repetir lógica.
 
+### getRegionFactor
+
+Devuelve el factor de precio de una región (1 por defecto si no se pasa región).
+
 ### getServiceCost
 
-Busca el costo de un servicio.
+Busca el costo de un servicio y, si recibe una región, aplica el `priceFactor` correspondiente.
 
 ### getMonthlyCost
 
-Suma el costo mensual de una lista de identificadores.
+Suma el costo mensual de una lista de identificadores, regionalizado si se pasa la región.
+
+### recommendTier
+
+Selecciona la instancia de hardware recomendada según los usuarios proyectados. Todos los servicios (EC2, RDS, ElastiCache) usan `minUsers` como criterio.
+
+### Geografía
+
+`src/utils/geo.ts` contiene `haversineKm` y `findNearestRegion`, que calculan la región más cercana a una coordenada.
 
 ### getValidServicesForProposal
 
@@ -519,6 +574,22 @@ La arquitectura se considera:
 
 - `Operativa` si la región está activa.
 - `En revisión` si está en standby.
+
+### Exportación PDF
+
+El botón "Exportar PDF" (ubicado en el header, al nivel del selector de propuestas) genera un documento PDF con toda la información actual del dashboard:
+
+- **Encabezado:** título del documento y fecha de generación.
+- **Propuesta seleccionada:** nombre, tipo, objetivo de migración y descripción.
+- **Tabla de KPIs:** servicios utilizados, región, estado de arquitectura, disponibilidad, usuarios estimados, costos mensual/anual y estado de seguridad.
+- **Tabla de desglose de costos por servicio:** cantidad, tarifa, costo mensual y anual, con fila de totales.
+- **Tabla de controles de seguridad:** título, área, estado (con colores) y descripción.
+- **Tabla de regiones AWS:** nombre, ubicación, estado, cantidad de servicios desplegados y factor de precio.
+- **Pie de página:** nombre de la propuesta y paginación en cada hoja.
+
+El nombre del archivo se deriva del nombre de la propuesta (ej: `dashboard-portal-empresarial-andina.pdf`).
+
+jsPDF y jspdf-autotable se cargan bajo demanda con `import()` dinámico para mantener el bundle del Dashboard liviano (11.7 KB).
 
 ---
 
@@ -586,18 +657,24 @@ Año    = mensual × 12
 
 ### Simulación
 
-Servicios variables:
+Servicios variables (escalan con usuarios):
 
 - EC2.
 - S3.
 - RDS.
 - CloudFront.
+- Lambda.
+- ElastiCache.
+- SQS.
+- SNS.
 
 Servicios fijos:
 
 - Route 53.
 - VPC.
 - IAM.
+- CloudWatch.
+- KMS.
 
 ```ts
 scale = projectedUsers / baseUsers
@@ -608,6 +685,14 @@ simulatedCost = variable
 ```
 
 La simulación es educativa; no representa la fórmula oficial de precios de AWS.
+
+**Derivación automática de hardware:**
+
+Al cambiar los usuarios proyectados, el sistema calcula automáticamente:
+- **vCPU y RAM:** según los tiers de hardware recomendados (EC2, RDS, ElastiCache).
+- **Storage (GB):** `Math.max(100, Math.ceil(users / 1000) * 50)` — mínimo 100 GB, incrementa 50 GB por cada 1000 usuarios.
+
+Ya no existe un control manual de almacenamiento; todo se deriva de los usuarios proyectados.
 
 ---
 
@@ -642,6 +727,8 @@ Coordenadas configuradas:
 - Norte de Virginia.
 - São Paulo.
 - Irlanda.
+- Singapur.
+- Tokio.
 
 ---
 
@@ -766,6 +853,30 @@ Servicio DNS que relaciona dominios con recursos AWS.
 #### CloudFront
 
 CDN global para reducir latencia y descargar tráfico del origen.
+
+#### Lambda
+
+Cómputo serverless que ejecuta código en respuesta a eventos sin administrar servidores.
+
+#### ElastiCache
+
+Caché en memoria (Redis/Memcached) para acelerar consultas frecuentes y sesiones.
+
+#### SQS
+
+Cola de mensajes administrada para desacoplar componentes y procesar tareas asíncronas.
+
+#### SNS
+
+Notificaciones y mensajería pub/sub para distribuir eventos a múltiples destinos.
+
+#### CloudWatch
+
+Monitoreo y observabilidad con métricas, logs, alarmas y dashboards personalizables.
+
+#### KMS
+
+Servicio administrado para crear y controlar claves de cifrado de datos.
 
 ---
 
@@ -1048,3 +1159,44 @@ Ubicándolo en una subred privada, permitiendo acceso únicamente desde la aplic
 CloudOpus demuestra cómo representar conceptos de Cloud Foundations mediante una aplicación React organizada, reutilizable y visual. El valor principal del proyecto no está en desplegar AWS, sino en modelar correctamente una solución, relacionar sus componentes y presentar decisiones técnicas de forma comprensible.
 
 La aplicación integra planificación, costos, regiones, seguridad, responsabilidad compartida, red y servicios AWS dentro de una sola experiencia coherente.
+
+---
+
+## 34. Funcionalidades agregadas (iteración 2)
+
+Estas funciones amplían el alcance académico sin salir del PDF:
+
+### Precios por región
+
+- Cada `Region` tiene `priceFactor` (Virginia = 1.00 como base; São Paulo = 1.21, Singapur = 1.09, Tokio = 1.10, etc.).
+- `getServiceCost(serviceId, regionId?)` y `getMonthlyCost(serviceIds, regionId?)` aplican el factor.
+- Costos, Dashboard, Propuesta y Servicios muestran precios regionalizados (con una nota "Precios de X · factor ×Y").
+- Se agregaron dos regiones: **Singapur** (`ap-southeast-1`) y **Tokio** (`ap-northeast-1`), con coordenadas para mapa y geolocalización.
+
+### Tipos de aplicación y servicios recomendados
+
+- `appTypes` ampliado a 8 tipos (incluidos IA/ML, Streaming e IoT).
+- `recommendedServices` mapea cada tipo a servicios recomendados.
+- En el formulario, los recomendados se marcan "Sugerido" y un botón "Usar recomendados" los añade sin pisar la selección manual. Siempre se filtran por lo disponible en la región elegida.
+
+### Modelo de responsabilidad compartida
+
+- `ResponsibilityItem` ganó `layer`.
+- Seguridad muestra una matriz de tres columnas (AWS "de la nube" / Cliente "en la nube" / Compartido) agrupada por capa: física, red, plataforma, datos, aplicación, identidades y configuración.
+
+### Detalle de cambio de hardware
+
+- `data/hardware.ts` define tiers: EC2 por usuarios (`t3.medium → t3.large → m5.large → m5.xlarge`) y RDS por almacenamiento (`db.m6g.large → db.m6g.xlarge → db.m6g.2xlarge`).
+- El simulador de Costos incluye un slider de almacenamiento y un panel "Hardware recomendado" con el salto de instancia.
+- S3 se documenta como almacenamiento serverless (no cambia de hardware).
+
+### Geolocalización
+
+- `utils/geo.ts` implementa haversine y `findNearestRegion`.
+- El botón "Usar mi ubicación" del formulario auto-selecciona la región activa más cercana y muestra la distancia; con fallback si el navegador deniega el permiso.
+
+### Borrar datos
+
+- `clearProposals()` en `ProposalsContext` vacía las propuestas y persiste el estado vacío.
+- `getInitialState` confía en un payload v1 incluso vacío, de modo que el estado limpio se mantiene tras recargar.
+- Botón "Borrar datos" en Planificación (junto a "Restablecer datos").

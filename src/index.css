@@ -47,11 +47,11 @@ html {
   --chart-secondary: #9aabb8;
   --chart-grid: #d9e0e6;
   --chart-axis: #64717d;
-  --map-ocean: #e9eff3;
-  --map-land: #ffffff;
-  --map-land-hover: #e2eaf0;
-  --map-coast: #c4d0d9;
-  --map-grid: #d7e0e6;
+  --map-ocean: #d6e4ee;
+  --map-land: #f0f5f9;
+  --map-land-hover: #dfe9f1;
+  --map-coast: #a8b8c5;
+  --map-grid: #c2d1dc;
   --map-route: #658ca4;
   --map-shadow: #526675;
   --map-selected: #38536a;

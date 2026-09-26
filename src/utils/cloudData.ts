@@ -2,17 +2,46 @@ import { awsServices } from '../data/awsServices'
 import { costItems } from '../data/costs'
 import { regions } from '../data/regions'
 import { securityChecks } from '../data/security'
-import type { Proposal, SecurityCheck, StatusLevel } from '../types/cloud'
+import type { CostItem, HardwareTier, Proposal, SecurityCheck, ServiceHardware, StatusLevel } from '../types/cloud'
 
-export function getServiceCost(serviceId: string) {
-  return costItems.find((item) => item.serviceId === serviceId)
+function round(value: number, decimals: number): number {
+  const factor = 10 ** decimals
+  return Math.round(value * factor) / factor
 }
 
-export function getMonthlyCost(serviceIds: string[]) {
+export function getRegionFactor(regionId?: string): number {
+  if (!regionId) return 1
+  return regions.find((region) => region.id === regionId)?.priceFactor ?? 1
+}
+
+export function getServiceCost(serviceId: string, regionId?: string): CostItem | undefined {
+  const item = costItems.find((item) => item.serviceId === serviceId)
+  if (!item) return undefined
+  const factor = getRegionFactor(regionId)
+  if (factor === 1) return item
+  return {
+    ...item,
+    unitCost: round(item.unitCost * factor, 4),
+    monthlyCost: round(item.monthlyCost * factor, 2),
+  }
+}
+
+export function getMonthlyCost(serviceIds: string[], regionId?: string): number {
   return serviceIds.reduce(
-    (total, serviceId) => total + (getServiceCost(serviceId)?.monthlyCost ?? 0),
+    (total, serviceId) => total + (getServiceCost(serviceId, regionId)?.monthlyCost ?? 0),
     0,
   )
+}
+
+export function recommendTier(
+  hardware: ServiceHardware,
+  users: number,
+): HardwareTier {
+  let current = hardware.tiers[0]
+  for (const tier of hardware.tiers) {
+    if (users >= tier.minUsers) current = tier
+  }
+  return current
 }
 
 export function getValidServicesForProposal(proposal: Proposal) {

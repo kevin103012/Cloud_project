@@ -184,11 +184,11 @@ src/
 ├── components/     Componentes reutilizables y WorldMap
 ├── context/        Providers y definiciones de contexto
 ├── hooks/          useProposals y useTheme
-├── data/           Mocks de AWS, costos, regiones, seguridad y red
+├── data/           Mocks de AWS, costos, regiones, seguridad, red y hardware
 ├── pages/          Módulos/rutas
 ├── routes/         Tabla de rutas y router
 ├── types/          Contratos del dominio Cloud
-├── utils/          Formato y reglas derivadas de datos
+├── utils/          Formato, cálculos cloud (cloudData) y geolocalización (geo)
 └── index.css       Tokens de tema claro/oscuro
 ```
 
@@ -205,13 +205,18 @@ No duplicar la selección de propuesta con `useState` local en cada página. Usa
 
 ## 8. Reglas de consistencia de datos
 
-- `costItems` es la única fuente de precios.
+- `costItems` es la única fuente de precios base (Virginia = factor 1.00).
 - No volver a añadir `monthlyCost` a `CloudService`.
 - Todo `Proposal.regionId` debe existir en `regions`.
 - Todo `Proposal.serviceIds[]` debe existir en `awsServices` y estar disponible en `Region.services`.
 - Todo `CostItem.serviceId` debe existir en el catálogo.
 - Las aristas de red deben referenciar nodos existentes.
 - La seguridad se filtra por servicios mediante `SecurityCheck.serviceIds` cuando corresponda.
+- Cada `Region` debe tener `priceFactor > 0` y coordenadas `lat`/`lng` válidas.
+- `recommendedServices[appType]` (en `data/planning.ts`) solo debe referenciar servicios existentes.
+- `serviceHardware[].serviceId` (en `data/hardware.ts`) debe existir y sus tiers deben estar ordenados.
+- Los precios regionalizados se obtienen con `getServiceCost(serviceId, regionId?)` y `getMonthlyCost(serviceIds, regionId?)`.
+- La geolocalización usa `src/utils/geo.ts` (haversine) y las coordenadas de `regions`.
 - Usar funciones de `src/utils/cloudData.ts` para cálculos compartidos.
 - Mantener versionado y validación de `localStorage`; no hacer `JSON.parse(...) as Proposal[]` sin validar.
 - Al modificar mocks, actualizar o ampliar `src/data/dataConsistency.test.ts`.
@@ -288,12 +293,13 @@ npm run build
 npm audit
 ```
 
-Estado conocido al crear este archivo:
+Estado conocido tras la iteración 3:
 
 - Lint: 0 errores y 0 advertencias.
-- Tests: 5 aprobados.
+- Tests: 11 aprobados (2 archivos: `dataConsistency.test.ts` y `geo.test.ts`).
 - Build: correcto y dividido por rutas.
 - Auditoría: 0 vulnerabilidades.
+- **Exportación PDF:** el Dashboard incluye un botón "Exportar PDF" que genera un documento con toda la información actual (propuesta, KPIs, costos por servicio, controles de seguridad, regiones). jsPDF y jspdf-autotable se cargan bajo demanda con `import()` dinámico para no impactar el bundle inicial.
 
 La documentación técnica y funcional para estudiar el sistema se mantiene en `docs/DOCUMENTACION_PROYECTO.md`. Actualizarla cuando cambien arquitectura, modelos, reglas o módulos.
 
@@ -309,3 +315,31 @@ La documentación técnica y funcional para estudiar el sistema se mantiene en `
 - Documentación y presentación: 5%.
 
 Toda propuesta de cambio debe indicar qué criterio mejora y evitar sacrificar requisitos obligatorios por funcionalidades extra.
+
+## 15. Funcionalidades agregadas (iteración 2)
+
+Implementadas y validadas:
+
+- **Precios por región:** cada `Region` tiene `priceFactor` (Virginia = 1.00 como base). `getServiceCost(serviceId, regionId?)` y `getMonthlyCost(serviceIds, regionId?)` aplican el factor. Se agregaron dos regiones: Singapur (`ap-southeast-1`, ×1.09) y Tokio (`ap-northeast-1`, ×1.10). Las coordenadas `lat`/`lng` viven en `Region` y las consume tanto el mapa como la geolocalización.
+- **Tipos de aplicación y servicios recomendados:** `appTypes` ampliado a 8 tipos y `recommendedServices` (en `data/planning.ts`) mapea cada tipo a servicios recomendados. En `ProposalForm`, los recomendados se marcan "Sugerido" y hay un botón "Usar recomendados" que no pisa la selección manual.
+- **Modelo de responsabilidad compartida:** `ResponsibilityItem` ganó `layer`; `Security.tsx` muestra una matriz de tres columnas (AWS "de la nube" / Cliente "en la nube" / Compartido) agrupada por capa.
+- **Detalle de hardware:** `data/hardware.ts` define tiers de EC2, RDS y ElastiCache (por usuarios). El simulador de Costos incluye un panel "Hardware recomendado" con el salto de instancia, vCPU y RAM.
+- **Geolocalización:** `utils/geo.ts` (haversine) + botón "Usar mi ubicación" en `ProposalForm` que auto-selecciona la región activa más cercana y muestra la distancia. Incluye fallback por IP pública (ipapi.co) cuando el GPS falla.
+- **Borrar datos:** `clearProposals()` en `ProposalsContext` vacía las propuestas y persiste el estado vacío (`getInitialState` confía en un payload v1 incluso vacío). Botón "Borrar datos" en Planificación.
+
+## 16. Correcciones y mejoras (iteración 3)
+
+- **Catálogo de servicios ampliado:** de 7 a 13 servicios (Lambda, ElastiCache, SQS, SNS, CloudWatch, KMS). Cada uno con costos, regiones, recomendaciones y controles de seguridad asociados.
+- **Simulador unificado por usuarios:** eliminado el slider de almacenamiento manual. Ahora vCPU, RAM y storage se derivan automáticamente de los usuarios proyectados (storage = `Math.max(100, Math.ceil(users / 1000) * 50)` GB).
+- **Geolocalización con fallback IP:** si el GPS falla o se deniega el permiso, el sistema intenta obtener la ubicación por IP pública (ipapi.co/json) y muestra el origen (GPS o IP) junto con la distancia.
+- **Contraste del mapa en modo claro:** ajustados `--map-land` (#f0f5f9) y `--map-ocean` (#d6e4ee) para mejorar visibilidad sobre fondo claro.
+- **Nav hover en Landing:** corregido el contraste del hover usando `text-foreground hover:bg-brand-700 hover:text-white` en lugar de `text-black hover:bg-black` (que quedaba invisible por el override CSS).
+- **Exportación PDF del Dashboard:** botón "Exportar PDF" en el header del Dashboard que genera un documento PDF con:
+  - Propuesta seleccionada (nombre, tipo, descripción, objetivo).
+  - Tabla de KPIs (servicios, región, costos, seguridad, disponibilidad).
+  - Tabla de desglose de costos por servicio (cantidad, tarifa, mensual, anual).
+  - Tabla de controles de seguridad con estado (correcto/revisión/problema).
+  - Tabla de regiones AWS con estado y factor de precio.
+  - Pie de página con nombre de la propuesta y paginación.
+  - Nombre del archivo derivado del nombre de la propuesta.
+  - jsPDF y jspdf-autotable se cargan bajo demanda con `import()` dinámico para mantener el bundle del Dashboard liviano (11.7 KB vs 440 KB sin lazy load).

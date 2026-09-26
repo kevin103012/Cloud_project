@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { awsServices } from './awsServices'
 import { costItems } from './costs'
+import { serviceHardware } from './hardware'
 import { networkEdges, networkNodes } from './network'
-import { proposals } from './planning'
+import { appTypes, proposals, recommendedServices } from './planning'
 import { regions } from './regions'
+import { securityChecks } from './security'
 
 describe('consistencia de los mocks cloud', () => {
   const serviceIds = new Set(awsServices.map((service) => service.id))
@@ -26,6 +28,18 @@ describe('consistencia de los mocks cloud', () => {
     }
   })
 
+  it('mantiene factor de precio y coordenadas válidas por región', () => {
+    for (const region of regions) {
+      expect(region.priceFactor).toBeGreaterThan(0)
+      expect(Number.isFinite(region.lat)).toBe(true)
+      expect(Number.isFinite(region.lng)).toBe(true)
+      expect(region.lat).toBeGreaterThanOrEqual(-90)
+      expect(region.lat).toBeLessThanOrEqual(90)
+      expect(region.lng).toBeGreaterThanOrEqual(-180)
+      expect(region.lng).toBeLessThanOrEqual(180)
+    }
+  })
+
   it('mantiene propuestas compatibles con sus regiones', () => {
     for (const proposal of proposals) {
       expect(regionIds.has(proposal.regionId)).toBe(true)
@@ -43,6 +57,37 @@ describe('consistencia de los mocks cloud', () => {
     for (const edge of networkEdges) {
       expect(nodeIds.has(edge.from)).toBe(true)
       expect(nodeIds.has(edge.to)).toBe(true)
+    }
+  })
+
+  it('recomienda solo servicios existentes para cada tipo de aplicación', () => {
+    for (const appType of appTypes) {
+      const ids = recommendedServices[appType] ?? []
+      for (const id of ids) expect(serviceIds.has(id)).toBe(true)
+    }
+  })
+
+  it('define tiers de hardware ordenados y asociados a servicios existentes', () => {
+    for (const hardware of serviceHardware) {
+      expect(serviceIds.has(hardware.serviceId)).toBe(true)
+      expect(hardware.tiers.length).toBeGreaterThan(0)
+      for (let i = 1; i < hardware.tiers.length; i++) {
+        const prev = hardware.tiers[i - 1]
+        const curr = hardware.tiers[i]
+        const prevMin = hardware.dimension === 'users' ? prev.minUsers : prev.minStorageGb
+        const currMin = hardware.dimension === 'users' ? curr.minUsers : curr.minStorageGb
+        expect(currMin).toBeGreaterThanOrEqual(prevMin)
+      }
+    }
+  })
+
+  it('asocia controles de seguridad solo a servicios existentes', () => {
+    for (const check of securityChecks) {
+      if (check.serviceIds) {
+        for (const id of check.serviceIds) {
+          expect(serviceIds.has(id)).toBe(true)
+        }
+      }
     }
   })
 })

@@ -7,6 +7,7 @@ export interface ProposalsContextValue {
   setSelectedProposalId: (id: string) => void
   addProposal: (proposal: Proposal) => void
   resetProposals: () => void
+  clearProposals: () => void
 }
 
 export const ProposalsContext = createContext<ProposalsContextValue | null>(null)

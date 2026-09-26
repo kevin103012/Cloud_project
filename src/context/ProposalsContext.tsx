@@ -73,11 +73,11 @@ function getInitialState(): StoredProposals {
     const current = window.localStorage.getItem(STORAGE_KEY)
     if (current) {
       const parsed = JSON.parse(current) as Partial<StoredProposals>
-      const proposals = parsed.version === 1 ? normalizeProposals(parsed.proposals) : []
-      if (proposals.length > 0) {
+      if (parsed.version === 1) {
+        const proposals = normalizeProposals(parsed.proposals)
         const selectedProposalId = proposals.some((item) => item.id === parsed.selectedProposalId)
-          ? parsed.selectedProposalId as string
-          : proposals[0].id
+          ? (parsed.selectedProposalId as string)
+          : (proposals[0]?.id ?? '')
         return { version: 1, proposals, selectedProposalId }
       }
     }
@@ -127,9 +127,14 @@ export function ProposalsProvider({ children }: { children: ReactNode }) {
     setSelectedProposalIdState(seedProposals[0]?.id ?? '')
   }
 
+  function clearProposals() {
+    setProposals([])
+    setSelectedProposalIdState('')
+  }
+
   return (
     <ProposalsContext.Provider
-      value={{ proposals, selectedProposalId, setSelectedProposalId, addProposal, resetProposals }}
+      value={{ proposals, selectedProposalId, setSelectedProposalId, addProposal, resetProposals, clearProposals }}
     >
       {children}
     </ProposalsContext.Provider>

@@ -36,6 +36,9 @@ export interface Region {
   location: string
   services: string[]
   status: RegionStatus
+  priceFactor: number
+  lat: number
+  lng: number
 }
 
 export type AvailabilityLevel = '99%' | '99.9%' | '99.99%'
@@ -77,6 +80,7 @@ export interface ResponsibilityItem {
   id: string
   task: string
   owner: Owner
+  layer: string
 }
 
 export type NetworkKind =
@@ -100,5 +104,23 @@ export interface NetworkEdge {
   from: string
   to: string
   label: string
+}
+
+export interface HardwareTier {
+  instanceType: string
+  minUsers: number
+  minStorageGb: number
+  vcpus: number
+  ramGb: number
+  note: string
+}
+
+export type HardwareDimension = 'users' | 'storage'
+
+export interface ServiceHardware {
+  serviceId: string
+  serviceName: string
+  dimension: HardwareDimension
+  tiers: HardwareTier[]
 }
 
