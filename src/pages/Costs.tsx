@@ -5,9 +5,12 @@ import {
   LayoutGrid,
   Lightbulb,
   MapPin,
+  Pencil,
+  Plus,
   TrendingUp,
   Users,
   Wallet,
+  X,
 } from 'lucide-react'
 import {
   Bar,
@@ -71,11 +74,12 @@ function getAdvice(monthly: number, users: number): Advice {
 type CostsTab = 'summary' | 'simulator'
 
 export default function Costs() {
-  const { proposals, selectedProposalId, setSelectedProposalId } = useProposals()
+  const { proposals, selectedProposalId, setSelectedProposalId, updateProposal } = useProposals()
   const selected = proposals.find((proposal) => proposal.id === selectedProposalId) ?? proposals[0]
   const [tab, setTab] = useState<CostsTab>('summary')
   const [period, setPeriod] = useState<Period>('month')
   const [projectedUsers, setProjectedUsers] = useState(selected?.estimatedUsers ?? 0)
+  const [editingServices, setEditingServices] = useState(false)
   const periodInfo = PERIODS.find((p) => p.id === period) ?? PERIODS[3]
 
   if (!selected) {
@@ -146,6 +150,21 @@ export default function Costs() {
     .filter((d) => d.actual > 0 || d.simulado > 0)
 
   const sliderMax = Math.max(baseUsers * 5, 1000)
+
+  // Edición de servicios de la planificación desde Costos.
+  const availableToAdd = awsServices.filter(
+    (service) =>
+      selectedRegion?.services.includes(service.id) && !selected.serviceIds.includes(service.id),
+  )
+
+  function handleTogglePlanService(serviceId: string) {
+    const included = selected.serviceIds.includes(serviceId)
+    if (included && selected.serviceIds.length <= 1) return
+    const nextServiceIds = included
+      ? selected.serviceIds.filter((id) => id !== serviceId)
+      : [...selected.serviceIds, serviceId]
+    updateProposal({ ...selected, serviceIds: nextServiceIds })
+  }
 
   return (
     <div className="flex min-w-0 flex-col gap-6 overflow-hidden">
@@ -247,7 +266,87 @@ export default function Costs() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-black">Desglose por servicio</h2>
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+              <h2 className="text-lg font-semibold text-black">Desglose por servicio</h2>
+              <button
+                type="button"
+                onClick={() => setEditingServices((open) => !open)}
+                aria-expanded={editingServices}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                  editingServices
+                    ? 'bg-black text-white'
+                    : 'border border-neutral-300 bg-white text-black hover:bg-neutral-100'
+                }`}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {editingServices ? 'Terminar edición' : 'Agregar o quitar servicios'}
+              </button>
+            </div>
+            {editingServices && (
+              <div className="mb-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+                <p className="text-xs text-neutral-500">
+                  Los cambios actualizan la planificación <span className="font-semibold text-black">{selected.solutionName}</span> en
+                  todos los módulos. Solo se ofrecen servicios disponibles en {selectedRegion?.name ?? 'la región principal'}.
+                </p>
+                <p className="mt-3 text-xs font-semibold tracking-wide text-neutral-400 uppercase">
+                  Incluidos ({selected.serviceIds.length}) · clic para quitar
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selected.serviceIds.map((id) => {
+                    const service = awsServices.find((s) => s.id === id)
+                    const cost = getServiceCost(id, selected.regionId)?.monthlyCost
+                    const isLast = selected.serviceIds.length <= 1
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => handleTogglePlanService(id)}
+                        disabled={isLast}
+                        title={isLast ? 'La planificación debe tener al menos un servicio' : `Quitar ${service?.name ?? id}`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-black bg-black px-3 py-1.5 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {service?.name ?? id}
+                        {cost !== undefined && (
+                          <span className="text-xs font-normal text-neutral-300">{formatUSD(cost)}/mes</span>
+                        )}
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )
+                  })}
+                </div>
+                {availableToAdd.length > 0 ? (
+                  <>
+                    <p className="mt-4 text-xs font-semibold tracking-wide text-neutral-400 uppercase">
+                      Disponibles ({availableToAdd.length}) · clic para agregar
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {availableToAdd.map((service) => {
+                        const cost = getServiceCost(service.id, selected.regionId)?.monthlyCost
+                        return (
+                          <button
+                            key={service.id}
+                            type="button"
+                            onClick={() => handleTogglePlanService(service.id)}
+                            title={`Agregar ${service.name}`}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-black transition-all duration-200 hover:scale-[1.02] hover:border-black"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            {service.name}
+                            {cost !== undefined && (
+                              <span className="text-xs font-normal text-neutral-500">{formatUSD(cost)}/mes</span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <p className="mt-3 text-xs text-neutral-500">
+                    Todos los servicios de la región ya están incluidos en esta planificación.
+                  </p>
+                )}
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {lines.map((item) => (
                 <CostCard

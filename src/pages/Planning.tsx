@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Boxes, ClipboardList, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { Boxes, ClipboardList, Pencil, Plus, RotateCcw, Trash2, X } from 'lucide-react'
 import ProposalForm from '../components/ProposalForm'
 import ProposalList from '../components/ProposalList'
 import ServiceCard from '../components/ServiceCard'
@@ -17,11 +17,32 @@ const tabs = [
 
 export default function Planning() {
   const [tab, setTab] = useState<Tab>('list')
-  const { proposals, addProposal, resetProposals, clearProposals } = useProposals()
+  const [editing, setEditing] = useState<Proposal | null>(null)
+  const { proposals, addProposal, updateProposal, resetProposals, clearProposals } = useProposals()
 
   function handleRegister(proposal: Proposal) {
     addProposal(proposal)
     setTab('list')
+  }
+
+  function handleEdit(proposal: Proposal) {
+    setEditing(proposal)
+    setTab('new')
+  }
+
+  function handleUpdate(proposal: Proposal) {
+    updateProposal(proposal)
+    setEditing(null)
+    setTab('list')
+  }
+
+  function handleCancelEdit() {
+    setEditing(null)
+  }
+
+  function handleTabChange(id: Tab) {
+    if (id !== 'new') setEditing(null)
+    setTab(id)
   }
 
   return (
@@ -38,7 +59,7 @@ export default function Planning() {
           <button
             key={id}
             type="button"
-            onClick={() => setTab(id)}
+            onClick={() => handleTabChange(id)}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 hover:scale-[1.02] ${
               tab === id
                 ? 'bg-black text-white'
@@ -74,9 +95,40 @@ export default function Planning() {
         </button>
       </nav>
 
-      {tab === 'list' && <ProposalList proposals={proposals} />}
+      {tab === 'list' && <ProposalList proposals={proposals} onEdit={handleEdit} />}
 
-      {tab === 'new' && <ProposalForm onSubmit={handleRegister} />}
+      {tab === 'new' && (
+        <div className="flex min-w-0 flex-col gap-4">
+          {editing && (
+            <div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="min-w-0 text-sm text-amber-800">
+                <span className="inline-flex items-center gap-1.5 font-semibold">
+                  <Pencil className="h-4 w-4" />
+                  Editando:
+                </span>{' '}
+                <span className="font-medium break-words">{editing.solutionName}</span>
+                <span className="block text-xs text-amber-700">
+                  Añade o quita servicios y regiones sin crear una planificación desde cero.
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 transition hover:bg-amber-100"
+              >
+                <X className="h-3.5 w-3.5" />
+                Cancelar edición
+              </button>
+            </div>
+          )}
+          <ProposalForm
+            key={editing ? editing.id : 'new'}
+            initialProposal={editing ?? undefined}
+            submitLabel={editing ? 'Guardar cambios' : undefined}
+            onSubmit={editing ? handleUpdate : handleRegister}
+          />
+        </div>
+      )}
 
       {tab === 'services' && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

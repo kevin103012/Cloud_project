@@ -1,16 +1,18 @@
+import { Pencil } from 'lucide-react'
 import type { Proposal } from '../types/cloud'
 import { awsServices } from '../data/awsServices'
 import { regions } from '../data/regions'
 
 interface ProposalListProps {
   proposals: Proposal[]
+  onEdit?: (proposal: Proposal) => void
 }
 
 function serviceNames(ids: string[]) {
   return ids.map((id) => awsServices.find((s) => s.id === id)?.name ?? id)
 }
 
-export default function ProposalList({ proposals }: ProposalListProps) {
+export default function ProposalList({ proposals, onEdit }: ProposalListProps) {
   if (proposals.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-10 text-center">
@@ -26,6 +28,9 @@ export default function ProposalList({ proposals }: ProposalListProps) {
     <div className="grid gap-4 md:grid-cols-2">
       {proposals.map((p) => {
         const region = regions.find((r) => r.id === p.regionId)
+        const replicaNames = (p.secondaryRegionIds ?? []).map(
+          (id) => regions.find((r) => r.id === id)?.name ?? id,
+        )
         return (
           <article
             key={p.id}
@@ -44,7 +49,7 @@ export default function ProposalList({ proposals }: ProposalListProps) {
 
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-xs text-neutral-400">Región</dt>
+                <dt className="text-xs text-neutral-400">Servidor principal</dt>
                 <dd className="font-medium text-black">{region?.name ?? p.regionId}</dd>
               </div>
               <div>
@@ -53,6 +58,14 @@ export default function ProposalList({ proposals }: ProposalListProps) {
                   {p.estimatedUsers.toLocaleString('es-ES')}
                 </dd>
               </div>
+              {replicaNames.length > 0 && (
+                <div className="col-span-2">
+                  <dt className="text-xs text-neutral-400">
+                    Réplicas ({replicaNames.length})
+                  </dt>
+                  <dd className="font-medium text-black">{replicaNames.join(' · ')}</dd>
+                </div>
+              )}
               <div className="col-span-2">
                 <dt className="text-xs text-neutral-400">Objetivo de migración</dt>
                 <dd className="font-medium text-black">{p.migrationGoal}</dd>
@@ -70,7 +83,20 @@ export default function ProposalList({ proposals }: ProposalListProps) {
               ))}
             </div>
 
-            <p className="mt-3 text-xs text-neutral-400">Registrada el {p.createdAt}</p>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <p className="text-xs text-neutral-400">Registrada el {p.createdAt}</p>
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={() => onEdit(p)}
+                  title={`Editar ${p.solutionName}`}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-black transition hover:bg-neutral-100"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
+                </button>
+              )}
+            </div>
           </article>
         )
       })}

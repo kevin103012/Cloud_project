@@ -1,20 +1,25 @@
 import { useState } from 'react'
-import { LocateFixed } from 'lucide-react'
+import { Crown, LocateFixed, Server, Sparkles } from 'lucide-react'
 import type { AvailabilityLevel, Proposal } from '../types/cloud'
 import { awsServices } from '../data/awsServices'
 import {
   appTypes,
+  appTypeDescriptions,
   availabilityLevels,
+  maxReplicaRegions,
   migrationGoals,
   recommendedServices,
 } from '../data/planning'
 import { regions } from '../data/regions'
 import { formatUSD } from '../utils/format'
 import { getMonthlyCost, getServiceCost } from '../utils/cloudData'
-import { findNearestRegion } from '../utils/geo'
+import { findNearestRegion, findNearestRegions, haversineKm } from '../utils/geo'
 
 interface ProposalFormProps {
   onSubmit: (proposal: Proposal) => void
+  /** Si se indica, el formulario edita esta propuesta en lugar de crear una nueva. */
+  initialProposal?: Proposal
+  submitLabel?: string
 }
 
 const inputClass =
@@ -24,15 +29,26 @@ const labelClass = 'mb-1 block text-sm font-medium text-black'
 
 const activeRegions = regions.filter((region) => region.status === 'active')
 
-export default function ProposalForm({ onSubmit }: ProposalFormProps) {
-  const [solutionName, setSolutionName] = useState('')
-  const [appType, setAppType] = useState(appTypes[0])
-  const [description, setDescription] = useState('')
-  const [regionId, setRegionId] = useState(activeRegions[0]?.id ?? '')
-  const [estimatedUsers, setEstimatedUsers] = useState('')
-  const [availability, setAvailability] = useState<AvailabilityLevel>(availabilityLevels[1])
-  const [serviceIds, setServiceIds] = useState<string[]>([])
-  const [migrationGoal, setMigrationGoal] = useState(migrationGoals[0])
+export default function ProposalForm({ onSubmit, initialProposal, submitLabel }: ProposalFormProps) {
+  const [solutionName, setSolutionName] = useState(initialProposal?.solutionName ?? '')
+  const [appType, setAppType] = useState(initialProposal?.appType ?? appTypes[0])
+  const [description, setDescription] = useState(
+    initialProposal?.description ?? appTypeDescriptions[appTypes[0]] ?? '',
+  )
+  const [regionId, setRegionId] = useState(initialProposal?.regionId ?? activeRegions[0]?.id ?? '')
+  const [serverMode, setServerMode] = useState<'single' | 'multi'>(
+    (initialProposal?.secondaryRegionIds?.length ?? 0) > 0 ? 'multi' : 'single',
+  )
+  const [secondaryIds, setSecondaryIds] = useState<string[]>(initialProposal?.secondaryRegionIds ?? [])
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [estimatedUsers, setEstimatedUsers] = useState(
+    initialProposal ? String(initialProposal.estimatedUsers) : '',
+  )
+  const [availability, setAvailability] = useState<AvailabilityLevel>(
+    initialProposal?.availability ?? availabilityLevels[1],
+  )
+  const [serviceIds, setServiceIds] = useState<string[]>(initialProposal?.serviceIds ?? [])
+  const [migrationGoal, setMigrationGoal] = useState(initialProposal?.migrationGoal ?? migrationGoals[0])
   const [error, setError] = useState('')
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [geoError, setGeoError] = useState('')
@@ -42,6 +58,56 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
     setServiceIds((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
     )
+  }
+
+  function handleAppTypeChange(next: string) {
+    // Rellena la descripción automáticamente, sin pisar un texto personalizado.
+    setDescription((current) => {
+      const defaults = new Set(Object.values(appTypeDescriptions))
+      if (current.trim() === '' || defaults.has(current)) {
+        return appTypeDescriptions[next] ?? ''
+      }
+      return current
+    })
+    setAppType(next)
+  }
+
+  function handleServerModeChange(next: 'single' | 'multi') {
+    setServerMode(next)
+    if (next === 'single') setSecondaryIds([])
+  }
+
+  function toggleSecondary(id: string) {
+    setSecondaryIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((s) => s !== id)
+        : prev.length >= maxReplicaRegions
+          ? prev
+          : [...prev, id],
+    )
+  }
+
+  /** El servidor principal es siempre la región activa más cercana al usuario. */
+  function applyPrimaryRegion(nextRegionId: string) {
+    const nextRegion = regions.find((region) => region.id === nextRegionId)
+    setRegionId(nextRegionId)
+    setServiceIds((current) =>
+      current.filter((serviceId) => nextRegion?.services.includes(serviceId)),
+    )
+    setSecondaryIds((current) => current.filter((id) => id !== nextRegionId))
+  }
+
+  function suggestNearbyReplicas() {
+    if (!userCoords) return
+    const nearest = findNearestRegions(
+      userCoords.lat,
+      userCoords.lng,
+      activeRegions.length,
+      (region) => region.status === 'active' && region.id !== regionId,
+    )
+      .slice(0, Math.min(2, maxReplicaRegions))
+      .map((entry) => entry.region.id)
+    setSecondaryIds(nearest)
   }
 
   function handleLocate() {
@@ -84,10 +150,8 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
   function selectNearestFromCoords(lat: number, lng: number, source: 'GPS' | 'IP') {
     const result = findNearestRegion(lat, lng, (region) => region.status === 'active')
     if (result) {
-      setRegionId(result.region.id)
-      setServiceIds((current) =>
-        current.filter((serviceId) => result.region.services.includes(serviceId)),
-      )
+      applyPrimaryRegion(result.region.id)
+      setUserCoords({ lat, lng })
       setNearestInfo({ name: result.region.name, distanceKm: result.distanceKm, source })
       setGeoStatus('done')
     } else {
@@ -112,6 +176,15 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
     .slice(0, 4)
   const maxCost = getServiceCost(topServices[0]?.id ?? '', regionId)?.monthlyCost ?? 0
   const previewRegion = regions.find((r) => r.id === regionId)
+  const replicaCandidates = activeRegions.filter((region) => region.id !== regionId)
+  const distanceByRegion = new Map<string, number>(
+    userCoords
+      ? replicaCandidates.map((region) => [
+          region.id,
+          haversineKm(userCoords.lat, userCoords.lng, region.lat, region.lng),
+        ])
+      : [],
+  )
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -132,16 +205,23 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
 
     setError('')
     onSubmit({
-      id: `prop-${Date.now()}`,
+      id: initialProposal?.id ?? `prop-${Date.now()}`,
       solutionName: solutionName.trim(),
       appType,
       description: description.trim(),
       regionId,
+      ...(serverMode === 'multi' && secondaryIds.length > 0
+        ? {
+            secondaryRegionIds: secondaryIds
+              .filter((id) => id !== regionId && activeRegions.some((region) => region.id === id))
+              .slice(0, maxReplicaRegions),
+          }
+        : {}),
       estimatedUsers: users,
       availability,
       serviceIds,
       migrationGoal,
-      createdAt: new Date().toISOString().slice(0, 10),
+      createdAt: initialProposal?.createdAt ?? new Date().toISOString().slice(0, 10),
     })
   }
 
@@ -172,7 +252,7 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
           id="appType"
           className={inputClass}
           value={appType}
-          onChange={(e) => setAppType(e.target.value)}
+          onChange={(e) => handleAppTypeChange(e.target.value)}
         >
           {appTypes.map((t) => (
             <option key={t} value={t}>
@@ -184,20 +264,13 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
 
       <div>
         <label className={labelClass} htmlFor="region">
-          Región seleccionada
+          Servidor principal
         </label>
         <select
           id="region"
           className={inputClass}
           value={regionId}
-          onChange={(e) => {
-            const nextRegionId = e.target.value
-            const nextRegion = regions.find((region) => region.id === nextRegionId)
-            setRegionId(nextRegionId)
-            setServiceIds((current) =>
-              current.filter((serviceId) => nextRegion?.services.includes(serviceId)),
-            )
-          }}
+          onChange={(e) => applyPrimaryRegion(e.target.value)}
         >
           {regions.map((r) => (
             <option key={r.id} value={r.id} disabled={r.status !== 'active'}>
@@ -216,7 +289,7 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
         </button>
         {geoStatus === 'done' && nearestInfo && (
           <p className="mt-1.5 text-xs text-green-700">
-            Región recomendada: {nearestInfo.name} (a{' '}
+            Servidor principal: {nearestInfo.name} (a{' '}
             {Math.round(nearestInfo.distanceKm).toLocaleString('es-ES')} km, vía {nearestInfo.source})
           </p>
         )}
@@ -227,10 +300,145 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
         )}
       </div>
 
+      <div>
+        <span className={labelClass} id="server-mode-label">
+          Número de servidores
+        </span>
+        <div
+          role="group"
+          aria-labelledby="server-mode-label"
+          className="grid grid-cols-2 gap-1 rounded-lg border border-neutral-300 bg-neutral-100 p-1"
+        >
+          {(
+            [
+              { id: 'single', label: '1 servidor' },
+              { id: 'multi', label: 'Varios' },
+            ] as const
+          ).map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => handleServerModeChange(id)}
+              aria-pressed={serverMode === id}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+                serverMode === id
+                  ? 'bg-black text-white shadow-sm'
+                  : 'text-neutral-600 hover:bg-white hover:text-black'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-xs text-neutral-500">
+          {serverMode === 'single'
+            ? 'Despliegue en una sola región.'
+            : `Despliegue en varias regiones (principal + hasta ${maxReplicaRegions} réplicas).`}
+        </p>
+      </div>
+
+      {serverMode === 'multi' && (
+      <div className="md:col-span-2 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className={labelClass}>
+            Servidores secundarios (réplicas){' '}
+            <span className="font-normal text-neutral-500">
+              {secondaryIds.length}/{maxReplicaRegions}
+            </span>
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={suggestNearbyReplicas}
+              disabled={!userCoords}
+              title={userCoords ? 'Elige las 2 regiones activas más cercanas al servidor principal' : 'Primero usa "Usar mi ubicación" para sugerir réplicas cercanas'}
+              className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-black transition hover:bg-neutral-100 disabled:opacity-50"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Sugerir réplicas cercanas
+            </button>
+            {secondaryIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSecondaryIds([])}
+                className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-black transition hover:bg-neutral-100"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="mb-3 text-xs text-neutral-500">
+          El servidor principal atiende al usuario; las réplicas replican los servicios para
+          disponibilidad y cercanía. Los servicios se definen desde el principal.
+        </p>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2.5 rounded-lg border border-black bg-white px-3 py-2">
+            <Crown className="h-4 w-4 shrink-0 text-amber-600" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-black">{previewRegion?.name}</p>
+              <p className="text-xs text-neutral-500">Principal · {previewRegion?.location}</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+              Principal
+            </span>
+          </div>
+          {replicaCandidates.map((region) => {
+            const checked = secondaryIds.includes(region.id)
+            const disabled = !checked && secondaryIds.length >= maxReplicaRegions
+            const distanceKm = distanceByRegion.get(region.id)
+            return (
+              <label
+                key={region.id}
+                className={`flex cursor-pointer items-center gap-2.5 rounded-lg border bg-white px-3 py-2 transition ${
+                  checked ? 'border-black' : 'border-neutral-200 hover:border-neutral-400'
+                } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={disabled}
+                  onChange={() => toggleSecondary(region.id)}
+                  className="h-4 w-4 shrink-0 accent-black"
+                />
+                <Server className="h-4 w-4 shrink-0 text-neutral-400" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-black">{region.name}</p>
+                  <p className="text-xs text-neutral-500">
+                    {region.location}
+                    {distanceKm !== undefined && (
+                      <> · a {Math.round(distanceKm).toLocaleString('es-ES')} km de ti</>
+                    )}{' '}
+                    · ×{region.priceFactor.toFixed(2)}
+                  </p>
+                </div>
+                {checked && (
+                  <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                    Réplica {secondaryIds.indexOf(region.id) + 1}
+                  </span>
+                )}
+              </label>
+            )
+          })}
+        </div>
+      </div>
+      )}
+
       <div className="md:col-span-2">
-        <label className={labelClass} htmlFor="description">
-          Descripción
-        </label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className={labelClass} htmlFor="description">
+            Descripción
+          </label>
+          {description !== (appTypeDescriptions[appType] ?? '') && (
+            <button
+              type="button"
+              onClick={() => setDescription(appTypeDescriptions[appType] ?? '')}
+              className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs font-medium text-black transition hover:bg-neutral-100"
+            >
+              Restablecer predeterminada
+            </button>
+          )}
+        </div>
         <textarea
           id="description"
           className={`${inputClass} min-h-20 resize-y`}
@@ -238,6 +446,9 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe brevemente la solución propuesta"
         />
+        <p className="mt-1 text-xs text-neutral-500">
+          Se rellena automáticamente según el tipo de aplicación; puedes modificarla libremente.
+        </p>
       </div>
 
       <div>
@@ -354,7 +565,7 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
           type="submit"
           className="w-full rounded-lg bg-black px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] hover:bg-neutral-800 sm:w-auto"
         >
-          Registrar propuesta
+          {submitLabel ?? 'Registrar propuesta'}
         </button>
       </div>
       </form>
@@ -395,7 +606,15 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
             )}
           </div>
           <p className="mt-2 text-xs text-neutral-500">
-            {previewRegion?.name} ·{' '}
+            Principal: {previewRegion?.name}
+            {secondaryIds.length > 0 && (
+              <> · {secondaryIds.length} réplica{secondaryIds.length > 1 ? 's' : ''}:{' '}
+                {secondaryIds
+                  .map((id) => regions.find((r) => r.id === id)?.name ?? id)
+                  .join(' · ')}
+              </>
+            )}{' '}
+            ·{' '}
             {estimatedUsers === ''
               ? '0'
               : Number(estimatedUsers).toLocaleString('es-ES')}{' '}

@@ -17,17 +17,23 @@ export function findNearestRegion(
   lng: number,
   filter?: (region: Region) => boolean,
 ): { region: Region; distanceKm: number } | null {
-  const candidates = filter ? regions.filter(filter) : regions
-  if (candidates.length === 0) return null
+  return findNearestRegions(lat, lng, 1, filter)[0] ?? null
+}
 
-  let nearest = candidates[0]
-  let minDistance = Infinity
-  for (const region of candidates) {
-    const distance = haversineKm(lat, lng, region.lat, region.lng)
-    if (distance < minDistance) {
-      minDistance = distance
-      nearest = region
-    }
-  }
-  return { region: nearest, distanceKm: minDistance }
+/**
+ * Regiones ordenadas por distancia ascendente desde un punto.
+ * Se usa para elegir el servidor principal (la primera) y sugerir
+ * réplicas cercanas (las siguientes).
+ */
+export function findNearestRegions(
+  lat: number,
+  lng: number,
+  limit = regions.length,
+  filter?: (region: Region) => boolean,
+): { region: Region; distanceKm: number }[] {
+  const candidates = filter ? regions.filter(filter) : regions
+  return candidates
+    .map((region) => ({ region, distanceKm: haversineKm(lat, lng, region.lat, region.lng) }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, Math.max(0, limit))
 }

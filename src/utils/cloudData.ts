@@ -52,6 +52,20 @@ export function getValidServicesForProposal(proposal: Proposal) {
   )
 }
 
+/**
+ * Regiones (servidores) de una planificación: principal primero y luego réplicas.
+ * Deduplica y conserva el orden para que el primario siempre sea `regionId`.
+ */
+export function getProposalRegionIds(proposal?: Proposal): string[] {
+  if (!proposal) return []
+  return [...new Set([proposal.regionId, ...(proposal.secondaryRegionIds ?? [])].filter(Boolean))]
+}
+
+/** Indica si una región actúa como réplica (servidor secundario) en la propuesta. */
+export function isReplicaRegion(proposal: Proposal, regionId: string): boolean {
+  return (proposal.secondaryRegionIds ?? []).includes(regionId)
+}
+
 export function getSecurityChecksForProposal(proposal?: Proposal): SecurityCheck[] {
   if (!proposal) return []
   return securityChecks.filter(
@@ -76,7 +90,7 @@ export function countServicesInRegion(proposals: Proposal[], regionId: string) {
   if (!region) return 0
   return new Set(
     proposals
-      .filter((proposal) => proposal.regionId === regionId)
+      .filter((proposal) => getProposalRegionIds(proposal).includes(regionId))
       .flatMap((proposal) => proposal.serviceIds)
       .filter((serviceId) => region.services.includes(serviceId)),
   ).size

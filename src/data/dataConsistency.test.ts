@@ -3,7 +3,7 @@ import { awsServices } from './awsServices'
 import { costItems } from './costs'
 import { serviceHardware } from './hardware'
 import { networkEdges, networkNodes } from './network'
-import { appTypes, proposals, recommendedServices } from './planning'
+import { appTypes, appTypeDescriptions, proposals, recommendedServices } from './planning'
 import { regions } from './regions'
 import { securityChecks } from './security'
 
@@ -52,6 +52,22 @@ describe('consistencia de los mocks cloud', () => {
     }
   })
 
+  it('mantiene servidores secundarios válidos en cada propuesta', () => {
+    const activeRegionIds = new Set(
+      regions.filter((region) => region.status === 'active').map((region) => region.id),
+    )
+    for (const proposal of proposals) {
+      const secondaries = proposal.secondaryRegionIds ?? []
+      expect(secondaries.length).toBeLessThanOrEqual(3)
+      expect(new Set(secondaries).size).toBe(secondaries.length)
+      for (const secondaryId of secondaries) {
+        expect(regionIds.has(secondaryId)).toBe(true)
+        expect(secondaryId).not.toBe(proposal.regionId)
+        expect(activeRegionIds.has(secondaryId)).toBe(true)
+      }
+    }
+  })
+
   it('mantiene aristas de red entre nodos existentes', () => {
     const nodeIds = new Set(networkNodes.map((node) => node.id))
     for (const edge of networkEdges) {
@@ -64,6 +80,14 @@ describe('consistencia de los mocks cloud', () => {
     for (const appType of appTypes) {
       const ids = recommendedServices[appType] ?? []
       for (const id of ids) expect(serviceIds.has(id)).toBe(true)
+    }
+  })
+
+  it('define una descripción predeterminada no vacía para cada tipo de aplicación', () => {
+    for (const appType of appTypes) {
+      const text = appTypeDescriptions[appType]
+      expect(typeof text).toBe('string')
+      expect(text.trim().length).toBeGreaterThan(0)
     }
   })
 

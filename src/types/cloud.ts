@@ -48,7 +48,13 @@ export interface Proposal {
   solutionName: string
   appType: string
   description: string
+  /** Región principal: aloja el servidor primario (el más cercano al usuario). */
   regionId: string
+  /**
+   * Regiones de los servidores secundarios (réplicas) de la planificación.
+   * Opcional para compatibilidad con propuestas de una sola región.
+   */
+  secondaryRegionIds?: string[]
   estimatedUsers: number
   availability: AvailabilityLevel
   serviceIds: string[]

@@ -6,6 +6,7 @@ export interface ProposalsContextValue {
   selectedProposalId: string
   setSelectedProposalId: (id: string) => void
   addProposal: (proposal: Proposal) => void
+  updateProposal: (proposal: Proposal) => void
   resetProposals: () => void
   clearProposals: () => void
 }

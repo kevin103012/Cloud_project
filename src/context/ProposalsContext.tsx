@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { awsServices } from '../data/awsServices'
-import { proposals as seedProposals } from '../data/planning'
+import { maxReplicaRegions, proposals as seedProposals } from '../data/planning'
 import { regions } from '../data/regions'
 import type { AvailabilityLevel, Proposal } from '../types/cloud'
 import { ProposalsContext } from './proposals-context'
@@ -31,6 +31,21 @@ function normalizeProposal(value: unknown): Proposal | null {
 
   const availability = source.availability
   const estimatedUsers = Number(source.estimatedUsers)
+  const activeRegionIds = new Set(
+    regions.filter((item) => item.status === 'active').map((item) => item.id),
+  )
+  const secondaryRegionIds = Array.isArray(source.secondaryRegionIds)
+    ? [
+        ...new Set(
+          source.secondaryRegionIds.filter(
+            (id): id is string =>
+              typeof id === 'string' &&
+              id !== region.id &&
+              activeRegionIds.has(id),
+          ),
+        ),
+      ].slice(0, maxReplicaRegions)
+    : []
   if (
     typeof source.id !== 'string' ||
     typeof source.solutionName !== 'string' ||
@@ -52,6 +67,7 @@ function normalizeProposal(value: unknown): Proposal | null {
     appType: source.appType,
     description: source.description,
     regionId: region.id,
+    ...(secondaryRegionIds.length > 0 ? { secondaryRegionIds } : {}),
     estimatedUsers,
     availability: availability as AvailabilityLevel,
     serviceIds: [...new Set(serviceIds)],
@@ -122,6 +138,18 @@ export function ProposalsProvider({ children }: { children: ReactNode }) {
     setSelectedProposalIdState(normalized.id)
   }
 
+  function updateProposal(proposal: Proposal) {
+    const normalized = normalizeProposal(proposal)
+    if (!normalized) return
+    setProposals((previous) => {
+      if (!previous.some((item) => item.id === normalized.id)) return previous
+      return previous.map((item) =>
+        item.id === normalized.id ? { ...normalized, createdAt: item.createdAt } : item,
+      )
+    })
+    setSelectedProposalIdState(normalized.id)
+  }
+
   function resetProposals() {
     setProposals(seedProposals)
     setSelectedProposalIdState(seedProposals[0]?.id ?? '')
@@ -134,7 +162,7 @@ export function ProposalsProvider({ children }: { children: ReactNode }) {
 
   return (
     <ProposalsContext.Provider
-      value={{ proposals, selectedProposalId, setSelectedProposalId, addProposal, resetProposals, clearProposals }}
+      value={{ proposals, selectedProposalId, setSelectedProposalId, addProposal, updateProposal, resetProposals, clearProposals }}
     >
       {children}
     </ProposalsContext.Provider>
