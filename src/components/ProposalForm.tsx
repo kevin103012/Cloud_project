@@ -146,10 +146,10 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
   }
 
   return (
-    <div className="grid items-start gap-4 xl:grid-cols-3">
+    <div className="grid min-w-0 items-start gap-4 overflow-hidden xl:grid-cols-3">
       <form
         onSubmit={handleSubmit}
-        className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm md:grid-cols-2 xl:col-span-2"
+        className="grid min-w-0 gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6 md:grid-cols-2 xl:col-span-2"
       >
       <div className="md:col-span-2">
         <label className={labelClass} htmlFor="solutionName">
@@ -352,14 +352,14 @@ export default function ProposalForm({ onSubmit }: ProposalFormProps) {
       <div className="md:col-span-2">
         <button
           type="submit"
-          className="rounded-lg bg-black px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] hover:bg-neutral-800"
+          className="w-full rounded-lg bg-black px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] hover:bg-neutral-800 sm:w-auto"
         >
           Registrar propuesta
         </button>
       </div>
       </form>
 
-      <aside className="flex flex-col gap-4 xl:sticky xl:top-6">
+      <aside className="flex min-w-0 flex-col gap-4 overflow-hidden xl:sticky xl:top-6">
         <div className="rounded-2xl border border-black bg-black p-5 text-white shadow-sm">
           <h3 className="text-sm font-semibold">Costo estimado</h3>
           <p className="text-xs text-neutral-400">Según servicios seleccionados</p>

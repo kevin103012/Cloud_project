@@ -11,7 +11,7 @@ interface NodeCardProps {
 
 function NodeCard({ node, enabled }: NodeCardProps) {
   return (
-    <article className={`min-w-40 flex-1 rounded-xl border p-4 ${enabled ? 'border-neutral-200 bg-white' : 'border-dashed border-neutral-300 bg-neutral-100 opacity-60'}`}>
+    <article className={`w-full min-w-0 flex-1 overflow-hidden rounded-xl border p-4 break-words xl:min-w-40 ${enabled ? 'border-neutral-200 bg-white' : 'border-dashed border-neutral-300 bg-neutral-100 opacity-60'}`}>
       <div className="flex items-start justify-between gap-2">
         {enabled ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <CircleOff className="h-5 w-5 text-neutral-400" />}
         <StatusBadge status={enabled ? node.status : 'warning'} label={enabled ? 'Incluido' : 'No incluido'} />
@@ -49,10 +49,10 @@ export default function Network() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
+      <header className="flex min-w-0 flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
           <p className="mb-1 text-xs font-semibold tracking-[0.16em] text-neutral-400 uppercase">Network topology</p>
-          <h1 className="text-3xl font-bold text-black">Arquitectura de Red</h1>
+          <h1 className="text-2xl font-bold break-words text-black sm:text-3xl">Arquitectura de Red</h1>
           <p className="mt-1 text-sm text-neutral-500">Internet, distribución global y recursos internos de la VPC.</p>
         </div>
         <div className="w-full md:w-80">
@@ -63,13 +63,13 @@ export default function Network() {
         </div>
       </header>
 
-      <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex items-center justify-between gap-3">
-          <div><h2 className="text-lg font-semibold text-black">Flujo de red</h2><p className="text-xs text-neutral-500">Los componentes atenuados no están incluidos en la propuesta, pero conservan la arquitectura de referencia.</p></div>
-          <NetworkIcon className="h-5 w-5 text-neutral-500" />
+      <section className="min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0"><h2 className="text-lg font-semibold text-black">Flujo de red</h2><p className="text-xs text-neutral-500">Los componentes atenuados no están incluidos en la propuesta, pero conservan la arquitectura de referencia.</p></div>
+          <NetworkIcon className="hidden h-5 w-5 shrink-0 text-neutral-500 sm:block" />
         </div>
 
-        <div className="mt-6 flex flex-col items-stretch xl:flex-row xl:items-center">
+        <div className="mt-6 flex min-w-0 flex-col items-stretch gap-1 xl:flex-row xl:items-center">
           <NodeCard node={node('internet')} enabled={enabledIds.has('internet')} />
           <Connector label={edgeLabel('internet', 'route53')} />
           <NodeCard node={node('route53')} enabled={enabledIds.has('route53')} />
@@ -77,15 +77,15 @@ export default function Network() {
           <NodeCard node={node('cloudfront')} enabled={enabledIds.has('cloudfront')} />
           <Connector label={edgeLabel('cloudfront', 'vpc')} />
 
-          <article className={`min-w-80 flex-[2] rounded-2xl border-2 p-4 ${enabledIds.has('vpc') ? 'border-blue-500/40 bg-blue-50/50 dark:bg-blue-950/20' : 'border-dashed border-neutral-300 bg-neutral-100 opacity-70'}`}>
-            <div className="flex items-start justify-between gap-3">
-              <div><p className="text-xs font-semibold tracking-wide text-blue-700 uppercase dark:text-blue-300">Amazon VPC</p><h3 className="mt-1 font-semibold text-black">{node('vpc').label}</h3><p className="mt-1 text-xs text-neutral-500">{node('vpc').description}</p></div>
+          <article className={`w-full min-w-0 flex-[2] overflow-hidden rounded-2xl border-2 p-4 break-words sm:p-4 xl:min-w-80 ${enabledIds.has('vpc') ? 'border-blue-500/40 bg-blue-50/50 dark:bg-blue-950/20' : 'border-dashed border-neutral-300 bg-neutral-100 opacity-70'}`}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0"><p className="text-xs font-semibold tracking-wide text-blue-700 uppercase dark:text-blue-300">Amazon VPC</p><h3 className="mt-1 font-semibold text-black">{node('vpc').label}</h3><p className="mt-1 text-xs text-neutral-500">{node('vpc').description}</p></div>
               <StatusBadge status={enabledIds.has('vpc') ? 'ok' : 'warning'} label={enabledIds.has('vpc') ? 'Incluida' : 'No incluida'} />
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
-              <div className="rounded-xl border border-neutral-200 bg-surface p-3"><p className="mb-2 text-[11px] font-semibold text-neutral-400 uppercase">Subred pública</p><NodeCard node={node('ec2')} enabled={enabledIds.has('ec2')} /></div>
-              <div className="flex flex-col items-center gap-1 text-xs text-neutral-400"><span>{edgeLabel('ec2', 'rds')}</span><ArrowDown className="h-4 w-4 md:hidden" /><ArrowRight className="hidden h-4 w-4 md:block" /></div>
-              <div className="rounded-xl border border-neutral-200 bg-surface p-3"><p className="mb-2 text-[11px] font-semibold text-neutral-400 uppercase">Subred privada</p><NodeCard node={node('rds')} enabled={enabledIds.has('rds')} /></div>
+            <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
+              <div className="min-w-0 rounded-xl border border-neutral-200 bg-surface p-3"><p className="mb-2 text-[11px] font-semibold text-neutral-400 uppercase">Subred pública</p><NodeCard node={node('ec2')} enabled={enabledIds.has('ec2')} /></div>
+              <div className="flex flex-col items-center gap-1 text-xs text-neutral-400"><span className="break-words text-center">{edgeLabel('ec2', 'rds')}</span><ArrowDown className="h-4 w-4 md:hidden" /><ArrowRight className="hidden h-4 w-4 md:block" /></div>
+              <div className="min-w-0 rounded-xl border border-neutral-200 bg-surface p-3"><p className="mb-2 text-[11px] font-semibold text-neutral-400 uppercase">Subred privada</p><NodeCard node={node('rds')} enabled={enabledIds.has('rds')} /></div>
             </div>
           </article>
         </div>

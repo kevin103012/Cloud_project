@@ -30,11 +30,11 @@ export default function Security() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
+    <div className="flex min-w-0 flex-col gap-6 overflow-hidden">
+      <header className="flex min-w-0 flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
           <p className="mb-1 text-xs font-semibold tracking-[0.16em] text-neutral-400 uppercase">Security posture</p>
-          <h1 className="text-3xl font-bold text-black">Seguridad</h1>
+          <h1 className="text-2xl font-bold break-words text-black sm:text-3xl">Seguridad</h1>
           <p className="mt-1 text-sm text-neutral-500">Controles aplicables a los servicios de la propuesta.</p>
         </div>
         <div className="w-full md:w-80">
@@ -62,7 +62,7 @@ export default function Security() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <section className="min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
         <h2 className="text-lg font-semibold text-black">Modelo de responsabilidad compartida</h2>
         <p className="mt-1 text-xs text-neutral-500">
           AWS protege la seguridad <span className="font-semibold text-black">de</span> la nube; el

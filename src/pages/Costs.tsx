@@ -80,8 +80,8 @@ export default function Costs() {
 
   if (!selected) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="text-3xl font-bold text-black">Costos</h1>
+      <div className="flex min-w-0 flex-col gap-6 overflow-hidden">
+        <h1 className="text-2xl font-bold break-words text-black sm:text-3xl">Costos</h1>
         <p className="text-sm text-neutral-500">
           Registra una propuesta en Planificación para estimar sus costos.
         </p>
@@ -148,10 +148,10 @@ export default function Costs() {
   const sliderMax = Math.max(baseUsers * 5, 1000)
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-black">Costos</h1>
+    <div className="flex min-w-0 flex-col gap-6 overflow-hidden">
+      <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold break-words text-black sm:text-3xl">Costos</h1>
           <p className="mt-1 text-sm text-neutral-500">
             Estimación simulada por propuesta y período.
           </p>
@@ -260,15 +260,15 @@ export default function Costs() {
             </div>
           </section>
 
-          <section className="grid gap-4 xl:grid-cols-3">
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm xl:col-span-2">
+          <section className="grid min-w-0 gap-4 xl:grid-cols-3">
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6 xl:col-span-2">
               <h2 className="text-lg font-semibold text-black">Distribución de costos</h2>
               <p className="text-xs text-neutral-500">Por categoría · {periodInfo.label} · USD</p>
-              <div className="mt-4 h-72 w-full">
+              <div className="mt-4 h-72 w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={distribution} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                  <BarChart data={distribution} margin={{ top: 8, right: 8, bottom: 48, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                    <XAxis dataKey="category" tick={{ fontSize: 12 }} stroke="var(--chart-axis)" tickLine={false} />
+                    <XAxis dataKey="category" tick={{ fontSize: 11 }} stroke="var(--chart-axis)" tickLine={false} interval={0} angle={-25} textAnchor="end" height={56} />
                     <YAxis
                       tick={{ fontSize: 12 }}
                       stroke="var(--chart-axis)"
@@ -288,15 +288,15 @@ export default function Costs() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
               <div className="flex items-center gap-2">
-                <Lightbulb className="h-5 w-5 text-black" />
+                <Lightbulb className="h-5 w-5 shrink-0 text-black" />
                 <h2 className="text-lg font-semibold text-black">Guía de gasto</h2>
               </div>
               <div className="mt-3">
                 <StatusBadge status={advice.level} label={advice.title} />
               </div>
-              <p className="mt-3 text-sm text-neutral-600">{advice.text}</p>
+              <p className="mt-3 text-sm break-words text-neutral-600">{advice.text}</p>
               {selected.availability === '99.99%' && selected.estimatedUsers < 20000 && (
                 <p className="mt-3 rounded-lg bg-neutral-100 p-3 text-sm text-neutral-700">
                   La disponibilidad 99.99% (Multi-AZ y réplicas) eleva el costo: con este
@@ -310,11 +310,11 @@ export default function Costs() {
 
       {tab === 'simulator' && (
         <>
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <div>
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div className="min-w-0">
                 <h2 className="text-lg font-semibold text-black">Usuarios proyectados</h2>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs break-words text-neutral-500">
                   Base actual: {baseUsers.toLocaleString('es-ES')} usuarios · los servicios
                   fijos ({fixedNames.join(', ') || 'ninguno'}) no escalan
                 </p>
@@ -392,12 +392,12 @@ export default function Costs() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Cpu className="h-5 w-5 text-black" />
-              <div>
+          <section className="min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex min-w-0 items-center gap-2">
+              <Cpu className="h-5 w-5 shrink-0 text-black" />
+              <div className="min-w-0">
                 <h2 className="text-lg font-semibold text-black">Hardware recomendado</h2>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs break-words text-neutral-500">
                   Instancia sugerida para {safeProjected.toLocaleString('es-ES')} usuarios proyectados.
                 </p>
               </div>
@@ -438,15 +438,15 @@ export default function Costs() {
             </p>
           </section>
 
-          <section className="grid gap-4 xl:grid-cols-3">
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm xl:col-span-2">
+          <section className="grid min-w-0 gap-4 xl:grid-cols-3">
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6 xl:col-span-2">
               <h2 className="text-lg font-semibold text-black">Actual vs simulado</h2>
               <p className="text-xs text-neutral-500">Por categoría · mensual · USD</p>
-              <div className="mt-4 h-72 w-full">
+              <div className="mt-4 h-72 w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={comparison} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                  <BarChart data={comparison} margin={{ top: 8, right: 8, bottom: 48, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                    <XAxis dataKey="category" tick={{ fontSize: 12 }} stroke="var(--chart-axis)" tickLine={false} />
+                    <XAxis dataKey="category" tick={{ fontSize: 11 }} stroke="var(--chart-axis)" tickLine={false} interval={0} angle={-25} textAnchor="end" height={56} />
                     <YAxis
                       tick={{ fontSize: 12 }}
                       stroke="var(--chart-axis)"

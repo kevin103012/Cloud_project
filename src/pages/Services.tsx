@@ -12,9 +12,9 @@ export default function Services() {
   const selectedRegion = regions.find((region) => region.id === selected?.regionId)
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div><p className="mb-1 text-xs font-semibold tracking-[0.16em] text-neutral-400 uppercase">Service catalog</p><h1 className="text-3xl font-bold text-black">Servicios AWS</h1><p className="mt-1 text-sm text-neutral-500">Catálogo, costos y estado de utilización por propuesta.</p></div>
+    <div className="flex min-w-0 flex-col gap-6 overflow-hidden">
+      <header className="flex min-w-0 flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0"><p className="mb-1 text-xs font-semibold tracking-[0.16em] text-neutral-400 uppercase">Service catalog</p><h1 className="text-2xl font-bold break-words text-black sm:text-3xl">Servicios AWS</h1><p className="mt-1 text-sm text-neutral-500">Catálogo, costos y estado de utilización por propuesta.</p></div>
         {selected && <div className="w-full md:w-80"><label className="mb-1 block text-xs font-semibold text-neutral-500" htmlFor="services-proposal">Propuesta seleccionada</label><select id="services-proposal" value={selected.id} onChange={(event) => setSelectedProposalId(event.target.value)} className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm font-medium text-black shadow-sm outline-none focus:border-black focus:ring-2 focus:ring-neutral-200">{proposals.map((proposal) => <option key={proposal.id} value={proposal.id}>{proposal.solutionName}</option>)}</select></div>}
       </header>
 

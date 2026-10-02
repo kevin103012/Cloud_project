@@ -271,10 +271,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-black">Dashboard</h1>
+    <div className="flex min-w-0 flex-col gap-6 overflow-hidden">
+      <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold break-words text-black sm:text-3xl">Dashboard</h1>
           <p className="mt-1 text-sm text-neutral-500">
             Resumen general de la solución Cloud.
           </p>
@@ -311,7 +311,7 @@ export default function Dashboard() {
             type="button"
             onClick={handleExport}
             disabled={!selected}
-            className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg bg-black px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 md:self-center"
+            className="inline-flex w-full shrink-0 items-center justify-center gap-2 self-start rounded-lg bg-black px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto md:self-center"
             title="Exportar dashboard a PDF"
           >
             <FileDown className="h-4 w-4" />
@@ -370,16 +370,16 @@ export default function Dashboard() {
         />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-3">
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm xl:col-span-2">
+      <section className="grid min-w-0 gap-4 xl:grid-cols-3">
+        <div className="min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6 xl:col-span-2">
           <h2 className="text-lg font-semibold text-black">Costo por servicio</h2>
           <p className="text-xs text-neutral-500">Distribución mensual de la propuesta seleccionada · USD</p>
-          <div className="mt-4">
+          <div className="mt-4 min-w-0">
             <CostChart data={serviceCosts} />
           </div>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
           <h2 className="text-lg font-semibold text-black">Seguridad</h2>
           <p className="text-xs text-neutral-500">Resumen del estado actual</p>
           <p className="mt-3 text-4xl font-bold text-black">

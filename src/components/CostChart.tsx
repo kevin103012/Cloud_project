@@ -15,11 +15,20 @@ interface CostChartProps {
 
 export default function CostChart({ data }: CostChartProps) {
   return (
-    <div className="h-72 w-full">
+    <div className="h-72 w-full min-w-0 overflow-hidden">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <BarChart data={data} margin={{ top: 8, right: 8, bottom: 48, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-          <XAxis dataKey="service" tick={{ fontSize: 12 }} stroke="var(--chart-axis)" tickLine={false} />
+          <XAxis
+            dataKey="service"
+            tick={{ fontSize: 11 }}
+            stroke="var(--chart-axis)"
+            tickLine={false}
+            interval={0}
+            angle={-25}
+            textAnchor="end"
+            height={56}
+          />
           <YAxis
             tick={{ fontSize: 12 }}
             stroke="var(--chart-axis)"

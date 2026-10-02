@@ -12,9 +12,9 @@ import { routes } from './routes'
 
 function AppLayout() {
   return (
-    <div className="flex min-h-screen bg-canvas text-foreground transition-colors duration-200">
+    <div className="flex min-h-screen flex-col overflow-x-clip bg-canvas text-foreground transition-colors duration-200 lg:flex-row">
       <Sidebar />
-      <main className="min-w-0 flex-1 px-6 py-6">
+      <main className="mx-auto min-w-0 w-full max-w-7xl flex-1 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6">
         <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><Loader size={80} /></div>}>
           <Outlet />
         </Suspense>

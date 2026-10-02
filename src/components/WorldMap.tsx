@@ -46,13 +46,13 @@ export default function WorldMap({ selectedRegionId, availableRegionIds, onSelec
     : []
 
   return (
-    <div className="relative mt-5 min-h-[340px] overflow-hidden rounded-2xl border border-subtle bg-[var(--map-ocean)]">
+    <div className="relative mt-5 min-h-[280px] overflow-hidden rounded-2xl border border-subtle bg-[var(--map-ocean)] sm:min-h-[340px]">
       <ComposableMap
         width={1000}
         height={480}
         projection="geoEqualEarth"
         projectionConfig={{ center: [0, 3], scale: 168 }}
-        className="h-full min-h-[340px] w-full touch-none"
+        className="h-full min-h-[280px] w-full touch-none sm:min-h-[340px]"
         role="img"
         aria-label="Mapa mundial interactivo con regiones de AWS"
       >
@@ -173,7 +173,7 @@ export default function WorldMap({ selectedRegionId, availableRegionIds, onSelec
         <button type="button" onClick={() => setZoom(view.zoom + 0.5)} disabled={view.zoom >= 3} className="p-2 text-muted transition hover:bg-surface-muted disabled:opacity-40" title="Acercar" aria-label="Acercar mapa"><Plus className="h-4 w-4" /></button>
       </div>
 
-      <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-3 rounded-lg border border-subtle bg-surface/90 px-3 py-2 text-[11px] text-muted shadow-sm backdrop-blur-sm">
+      <div className="absolute bottom-3 left-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2 rounded-lg border border-subtle bg-surface/90 px-3 py-2 text-[11px] text-muted shadow-sm backdrop-blur-sm sm:gap-3">
         <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-brand-700" />Seleccionada</span>
         <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-emerald-600" />Activa</span>
         <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-amber-600" />Standby</span>

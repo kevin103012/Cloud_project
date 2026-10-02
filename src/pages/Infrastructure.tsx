@@ -29,11 +29,11 @@ export default function Infrastructure() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
+    <div className="flex min-w-0 flex-col gap-6 overflow-hidden">
+      <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
           <p className="mb-1 text-xs font-semibold tracking-[0.16em] text-neutral-400 uppercase">Cloud architecture</p>
-          <h1 className="text-3xl font-bold text-black">Infraestructura global</h1>
+          <h1 className="text-2xl font-bold break-words text-black sm:text-3xl">Infraestructura global</h1>
           <p className="mt-1 text-sm text-neutral-500">Visualiza dónde se desplegará cada propuesta Cloud.</p>
         </div>
         <div className="w-full md:w-80">
@@ -76,10 +76,10 @@ export default function Infrastructure() {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div><h2 className="text-lg font-semibold text-black">Mapa de regiones AWS</h2><p className="mt-1 text-xs text-neutral-500">La región resaltada corresponde a la propuesta seleccionada.</p></div>
+      <section className="grid min-w-0 gap-6 xl:grid-cols-[1.4fr_0.8fr]">
+        <div className="min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0"><h2 className="text-lg font-semibold text-black">Mapa de regiones AWS</h2><p className="mt-1 text-xs text-neutral-500">La región resaltada corresponde a la propuesta seleccionada.</p></div>
             <StatusBadge status={selectedRegion.status === 'active' ? 'ok' : 'warning'} label={selectedRegion.status === 'active' ? 'Región activa' : 'Región standby'} />
           </div>
           <WorldMap

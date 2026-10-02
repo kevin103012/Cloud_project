@@ -17,7 +17,7 @@ export default function StatCard({
 }: StatCardProps) {
   return (
     <div
-      className={`rounded-2xl border p-5 shadow-sm ${
+      className={`min-w-0 overflow-hidden rounded-2xl border p-5 shadow-sm ${
         inverted
           ? 'border-black bg-black text-white'
           : 'border-neutral-200 bg-white text-black'

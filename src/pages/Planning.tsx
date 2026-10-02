@@ -25,9 +25,9 @@ export default function Planning() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-bold text-black">Planificación</h1>
+    <div className="flex min-w-0 flex-col gap-6 overflow-hidden">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-bold break-words text-black sm:text-3xl">Planificación</h1>
         <p className="mt-1 text-sm text-neutral-500">
           Registra y consulta las propuestas de solución Cloud.
         </p>
@@ -53,7 +53,7 @@ export default function Planning() {
         <button
           type="button"
           onClick={resetProposals}
-          className="ml-auto flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-neutral-100"
+          className="flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-neutral-100 sm:ml-auto"
           title="Restablecer las propuestas de ejemplo"
         >
           <RotateCcw className="h-4 w-4" />
